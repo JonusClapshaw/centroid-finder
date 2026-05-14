@@ -1,4 +1,12 @@
+package test.java;
+
 import org.junit.jupiter.api.Test;
+
+import main.java.BinarizingImageGroupFinder;
+import main.java.BinaryGroupFinder;
+import main.java.ImageBinarizer;
+import main.java.Group;
+import main.java.Coordinate;
 
 import java.awt.image.BufferedImage;
 import java.util.List;
