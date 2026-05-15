@@ -1,4 +1,4 @@
-package main.java;
+package io.github.JonusClapshaw.centroidFinder;
 
 /**
  * Represents a location in an image or array

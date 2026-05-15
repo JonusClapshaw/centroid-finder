@@ -1,4 +1,4 @@
-package main.java;
+package io.github.JonusClapshaw.centroidFinder;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,9 +1,9 @@
-package test.java;
+package io.github.JonusClapshaw.centroidFinder;
 
 import org.junit.jupiter.api.Test;
 
-import main.java.ColorDistanceFinder;
-import main.java.DistanceImageBinarizer;
+import io.github.JonusClapshaw.centroidFinder.ColorDistanceFinder;
+import io.github.JonusClapshaw.centroidFinder.DistanceImageBinarizer;
 
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;

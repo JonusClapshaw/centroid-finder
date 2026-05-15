@@ -1,4 +1,4 @@
-package main.java;
+package io.github.JonusClapshaw.centroidFinder;
 
 public class EuclideanColorDistance implements ColorDistanceFinder {
     /**

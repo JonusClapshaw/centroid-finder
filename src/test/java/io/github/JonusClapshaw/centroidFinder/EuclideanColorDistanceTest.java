@@ -1,7 +1,7 @@
-package test.java;
+package io.github.JonusClapshaw.centroidFinder;
 
 import org.junit.jupiter.api.Test;
-import main.java.EuclideanColorDistance;
+import io.github.JonusClapshaw.centroidFinder.EuclideanColorDistance;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

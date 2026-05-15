@@ -1,10 +1,10 @@
-package test.java;
+package io.github.JonusClapshaw.centroidFinder;
 
 import org.junit.jupiter.api.Test;
 
-import main.java.Coordinate;
-import main.java.DfsBinaryGroupFinder;
-import main.java.Group;
+import io.github.JonusClapshaw.centroidFinder.Coordinate;
+import io.github.JonusClapshaw.centroidFinder.DfsBinaryGroupFinder;
+import io.github.JonusClapshaw.centroidFinder.Group;
 
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
