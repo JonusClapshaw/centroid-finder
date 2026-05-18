@@ -51,3 +51,13 @@ Pro's
 Con's 
 * Small community and harder to find documentation
 * Smaller community so less tested and solution to problems/ examples
+
+## Xuggler
+
+Pro's
+* Clean, Java friendly API wrapping FFmpeg
+* Great for low-level video manipulation
+
+Con's
+* Officially deprecated; no longer actively maintained
+* No official Maven support
