@@ -2,12 +2,6 @@ package io.github.JonusClapshaw.centroidFinder;
 
 import org.junit.jupiter.api.Test;
 
-import io.github.JonusClapshaw.centroidFinder.BinarizingImageGroupFinder;
-import io.github.JonusClapshaw.centroidFinder.BinaryGroupFinder;
-import io.github.JonusClapshaw.centroidFinder.ImageBinarizer;
-import io.github.JonusClapshaw.centroidFinder.Group;
-import io.github.JonusClapshaw.centroidFinder.Coordinate;
-
 import java.awt.image.BufferedImage;
 import java.util.List;
 
