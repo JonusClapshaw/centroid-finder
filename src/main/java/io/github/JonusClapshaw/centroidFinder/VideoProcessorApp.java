@@ -13,7 +13,19 @@ import java.io.PrintWriter;
 public class VideoProcessorApp {
 
     public static void main(String[] args) {
-        
+        try {
+            ParsedArgs parsedArgs = parseArgs(args);
+            VideoProcessor processor = new VideoProcessor();
+            processor.process(
+                parsedArgs.inputPath(),
+                parsedArgs.outputCsvPath(),
+                parsedArgs.targetColor(),
+                parsedArgs.threshold()
+            );
+        } catch (IllegalArgumentException e) {
+            System.err.println("Error: " + e.getMessage());
+            System.exit(1);
+        }
     }
 
     static ParsedArgs parseArgs(String[] args) {
