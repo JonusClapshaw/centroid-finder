@@ -1,7 +1,6 @@
 package io.github.JonusClapshaw.centroidFinder;
 
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.UncheckedIOException;
 
 /**
  * Entry point for video processing.
@@ -17,18 +16,16 @@ public class VideoProcessorApp {
         try {
             ParsedArgs parsedArgs = parseArgs(args);
             VideoProcessor processor = new VideoProcessor();
-            try (CsvWriter writer = new CsvWriter(parsedArgs.outputCsvPath())) {
-                processor.process(
-                    parsedArgs.inputPath(),
-                    parsedArgs.targetColor(),
-                    parsedArgs.threshold()
-                    // add writer method later once VideoProcessor is completed
-                );
-            }
+            processor.process(
+                parsedArgs.inputPath(),
+                parsedArgs.outputCsvPath(),
+                parsedArgs.targetColor(),
+                parsedArgs.threshold()
+            );
         } catch (IllegalArgumentException e) {
             System.err.println("Error: " + e.getMessage());
             System.exit(1);
-        } catch (IOException e) {
+        } catch (UncheckedIOException e) {
             System.err.println("Error: " + e.getMessage());
             System.exit(1);
         }
