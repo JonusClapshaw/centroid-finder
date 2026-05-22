@@ -1,5 +1,6 @@
 package io.github.JonusClapshaw.centroidFinder;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 
 /**
@@ -16,13 +17,18 @@ public class VideoProcessorApp {
         try {
             ParsedArgs parsedArgs = parseArgs(args);
             VideoProcessor processor = new VideoProcessor();
-            processor.process(
-                parsedArgs.inputPath(),
-                parsedArgs.outputCsvPath(),
-                parsedArgs.targetColor(),
-                parsedArgs.threshold()
-            );
+            try (CsvWriter writer = new CsvWriter(parsedArgs.outputCsvPath())) {
+                processor.process(
+                    parsedArgs.inputPath(),
+                    parsedArgs.targetColor(),
+                    parsedArgs.threshold()
+                    // add writer method later once VideoProcessor is completed
+                );
+            }
         } catch (IllegalArgumentException e) {
+            System.err.println("Error: " + e.getMessage());
+            System.exit(1);
+        } catch (IOException e) {
             System.err.println("Error: " + e.getMessage());
             System.exit(1);
         }
