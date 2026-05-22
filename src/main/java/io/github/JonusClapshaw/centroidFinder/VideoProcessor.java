@@ -9,13 +9,26 @@ import java.util.List;
  * Orchestrates the video processing pipeline.
  */
 public class VideoProcessor {
-    private static final double DEFAULT_FRAMES_PER_SECOND = 30.0;
+    private static final double OUTPUT_FRAMES_PER_SECOND = 1.0;
 
     public void process(String inputPath, String outputCsvPath, String targetColor, int threshold) {
         try {
             VideoFrameReader frameReader = new VideoFrameReader(inputPath);
-            List<BufferedImage> frames = frameReader.readAllFrames();
-            processFrames(frames, outputCsvPath, targetColor, threshold, DEFAULT_FRAMES_PER_SECOND);
+            int parsedTargetColor = parseTargetColor(targetColor);
+            ImageGroupFinder groupFinder = buildGroupFinder(parsedTargetColor, threshold);
+            double[] nextSampleTimestampSeconds = {0.0};
+
+            try (CsvWriter csvWriter = new CsvWriter(outputCsvPath)) {
+                frameReader.readFramesWithTimestamps((frame, frameIndex, timestampSeconds) -> {
+                    if (timestampSeconds + 1e-9 < nextSampleTimestampSeconds[0]) {
+                        return;
+                    }
+
+                    List<Group> groups = groupFinder.findConnectedGroups(frame);
+                    csvWriter.writeRow(nextSampleTimestampSeconds[0], groups);
+                    nextSampleTimestampSeconds[0] += 1.0 / OUTPUT_FRAMES_PER_SECOND;
+                });
+            }
         } catch (IOException exception) {
             throw new UncheckedIOException("Unable to process video.", exception);
         }
@@ -36,6 +49,13 @@ public class VideoProcessor {
                 csvWriter.writeRow(timestampSeconds, groups);
             }
         }
+    }
+
+    int samplingIntervalFrames(double inputFramesPerSecond, double outputFramesPerSecond) {
+        if (inputFramesPerSecond <= 0.0 || outputFramesPerSecond <= 0.0) {
+            return 1;
+        }
+        return Math.max(1, (int) Math.round(inputFramesPerSecond / outputFramesPerSecond));
     }
 
     private ImageGroupFinder buildGroupFinder(int targetColor, int threshold) {

@@ -16,3 +16,6 @@
   * The size of the group, represented by the amount of connected pixels
   * The coordinate for the center of the group (eg. row=4 col=7 would display as [x: 7, y: 4])
 * After collecting every group, orders them by size in descending order
+
+## Function to test jar 
+java -jar target/videoprocessor.jar sampleInput/ensantina.mp4 output-from-jar.csv 450907 25

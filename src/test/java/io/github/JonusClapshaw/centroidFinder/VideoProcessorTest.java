@@ -76,4 +76,19 @@ class VideoProcessorTest {
 
         assertEquals("targetColor must be a 6-digit RGB hex value.", exception.getMessage());
     }
+
+    @Test
+    void samplingIntervalFrames_returnsThirtyForThirtyFpsInput() {
+        VideoProcessor processor = new VideoProcessor();
+
+        assertEquals(30, processor.samplingIntervalFrames(30.0, 1.0));
+    }
+
+    @Test
+    void samplingIntervalFrames_neverReturnsLessThanOne() {
+        VideoProcessor processor = new VideoProcessor();
+
+        assertEquals(1, processor.samplingIntervalFrames(0.0, 1.0));
+        assertEquals(1, processor.samplingIntervalFrames(0.5, 1.0));
+    }
 }

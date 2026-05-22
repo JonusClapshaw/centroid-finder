@@ -42,6 +42,7 @@
     </dependencies>
 
     <build>
+        <finalName>videoprocessor</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -53,15 +54,30 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.3.0</version>
                 <configuration>
-                    <mainClass>io.github.JonusClapshaw.centroidFinder.ImageSummaryApp</mainClass>
                     <classpathScope>runtime</classpathScope>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.7.1</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>io.github.JonusClapshaw.centroidFinder.VideoProcessorApp</mainClass>
+                        </manifest>
+                    </archive>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                    <appendAssemblyId>false</appendAssemblyId>
                 </configuration>
                 <executions>
                     <execution>
-                        <id>run-main</id>
-                        <phase>compile</phase>
+                        <id>make-executable-jar</id>
+                        <phase>package</phase>
                         <goals>
-                            <goal>java</goal>
+                            <goal>single</goal>
                         </goals>
                     </execution>
                 </executions>

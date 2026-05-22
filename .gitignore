@@ -23,4 +23,13 @@
 hs_err_pid*
 replay_pid*
 
-ensantina.mp4
+# Maven build output
+target/
+
+# Generated centroid/video output files
+output*.csv
+
+# Local validation videos (do not commit large source videos)
+*.mp4
+*.mov
+*.avi
