@@ -33,3 +33,6 @@ output*.csv
 *.mp4
 *.mov
 *.avi
+
+# Node.js dependencies
+node_modules/
