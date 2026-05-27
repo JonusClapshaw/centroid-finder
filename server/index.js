@@ -39,6 +39,96 @@ const mockResults = {
   },
 };
 
+function execFileAsync(command, args, options = {}) {
+  return new Promise((resolve, reject) => {
+    execFile(command, args, options, (error, stdout, stderr) => {
+      if (error) {
+        reject({ error, stdout, stderr });
+        return;
+      }
+      resolve({ stdout, stderr });
+    });
+  });
+}
+
+function parseCsvRows(csvText) {
+  const lines = csvText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  if (lines.length <= 1) {
+    return [];
+  }
+
+  return lines.slice(1).map((line) => {
+    const [timestamp, x, y] = line.split(",");
+    return {
+      timestamp: Number(timestamp),
+      x: Number(x),
+      y: Number(y),
+    };
+  });
+}
+
+function resolveProcessRequest(body = {}) {
+  const {
+    videoPath,
+    inputPath = "processor/sampleInput/ensantina.mp4",
+    outputCsv = "output.csv",
+    targetColor,
+    threshold,
+  } = body;
+
+  if (!targetColor || typeof targetColor !== "string") {
+    const error = new Error("targetColor is required and must be a string.");
+    error.status = 400;
+    throw error;
+  }
+
+  if (!Number.isInteger(threshold)) {
+    const error = new Error("threshold is required and must be an integer.");
+    error.status = 400;
+    throw error;
+  }
+
+  if (!fs.existsSync(jarPath)) {
+    const error = new Error(`Processor jar not found. Expected: ${jarPath}`);
+    error.status = 500;
+    throw error;
+  }
+
+  const selectedInputPath = videoPath || inputPath;
+  const resolvedInputPath = path.isAbsolute(selectedInputPath)
+    ? selectedInputPath
+    : path.join(repoRoot, selectedInputPath);
+
+  if (!fs.existsSync(resolvedInputPath)) {
+    const error = new Error(`Input video not found: ${resolvedInputPath}`);
+    error.status = 400;
+    throw error;
+  }
+
+  const resolvedOutputCsv = path.isAbsolute(outputCsv)
+    ? outputCsv
+    : path.join(repoRoot, outputCsv);
+
+  return { resolvedInputPath, resolvedOutputCsv, targetColor, threshold };
+}
+
+async function runProcessorAndReadCsv(config) {
+  const { resolvedInputPath, resolvedOutputCsv, targetColor, threshold } = config;
+  const { stdout, stderr } = await execFileAsync(
+    "java",
+    ["-jar", jarPath, resolvedInputPath, resolvedOutputCsv, targetColor, String(threshold)],
+    { cwd: repoRoot, maxBuffer: 1024 * 1024 * 10 }
+  );
+
+  const csvText = fs.readFileSync(resolvedOutputCsv, "utf8");
+  const rows = parseCsvRows(csvText);
+  return { stdout, stderr, rows };
+}
+
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
@@ -66,70 +156,57 @@ app.get("/mock/results", (_req, res) => {
   res.json({ mock: true, ...mockResults["ensantina.mp4"] });
 });
 
-app.post("/process/run", (req, res) => {
-  const {
-    videoPath,
-    inputPath = "processor/sampleInput/ensantina.mp4",
-    outputCsv = "output.csv",
-    targetColor,
-    threshold,
-  } = req.body || {};
+app.post("/process/run", async (req, res) => {
+  try {
+    const config = resolveProcessRequest(req.body);
+    const { stdout, stderr, rows } = await runProcessorAndReadCsv(config);
 
-  if (!targetColor || typeof targetColor !== "string") {
-    res.status(400).json({ error: "targetColor is required and must be a string." });
-    return;
-  }
-
-  if (!Number.isInteger(threshold)) {
-    res.status(400).json({ error: "threshold is required and must be an integer." });
-    return;
-  }
-
-  if (!fs.existsSync(jarPath)) {
-    res.status(500).json({
-      error: "Processor jar not found.",
-      details: `Expected: ${jarPath}`,
+    res.json({
+      status: "done",
+      inputVideoPath: config.resolvedInputPath,
+      outputCsvPath: config.resolvedOutputCsv,
+      rowCount: rows.length,
+      rows,
+      stdout,
+      stderr,
     });
-    return;
+  } catch (caughtError) {
+    const error = caughtError.error || caughtError;
+    const stderr = caughtError.stderr;
+    res.status(error.status || 500).json({
+      error: stderr || error.message,
+      details: stderr || error.message,
+    });
   }
+});
 
-  const selectedInputPath = videoPath || inputPath;
+app.post("/api/process", async (req, res) => {
+  try {
+    const config = resolveProcessRequest(req.body);
+    const { rows } = await runProcessorAndReadCsv(config);
+    const missingCount = rows.filter((row) => row.x === -1 && row.y === -1).length;
 
-  const resolvedInputPath = path.isAbsolute(selectedInputPath)
-    ? selectedInputPath
-    : path.join(repoRoot, selectedInputPath);
-
-  if (!fs.existsSync(resolvedInputPath)) {
-    res.status(400).json({ error: `Input video not found: ${resolvedInputPath}` });
-    return;
+    res.json({
+      success: true,
+      data: {
+        inputVideoPath: config.resolvedInputPath,
+        outputCsvPath: config.resolvedOutputCsv,
+        summary: {
+          rowCount: rows.length,
+          foundCount: rows.length - missingCount,
+          missingCount,
+        },
+        rows,
+      },
+    });
+  } catch (caughtError) {
+    const error = caughtError.error || caughtError;
+    const stderr = caughtError.stderr;
+    res.status(error.status || 500).json({
+      success: false,
+      error: stderr || error.message,
+    });
   }
-
-  const resolvedOutputCsv = path.isAbsolute(outputCsv)
-    ? outputCsv
-    : path.join(repoRoot, outputCsv);
-
-  execFile(
-    "java",
-    ["-jar", jarPath, resolvedInputPath, resolvedOutputCsv, targetColor, String(threshold)],
-    { cwd: repoRoot, maxBuffer: 1024 * 1024 * 10 },
-    (error, stdout, stderr) => {
-      if (error) {
-        res.status(500).json({
-          error: "Failed to execute processor jar.",
-          details: stderr || error.message,
-        });
-        return;
-      }
-
-      res.json({
-        status: "done",
-        inputVideoPath: resolvedInputPath,
-        outputCsvPath: resolvedOutputCsv,
-        stdout,
-        stderr,
-      });
-    }
-  );
 });
 
 if (require.main === module) {

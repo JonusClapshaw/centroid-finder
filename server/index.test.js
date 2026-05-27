@@ -2,6 +2,7 @@ const request = require("supertest");
 
 jest.mock("fs", () => ({
   existsSync: jest.fn(),
+  readFileSync: jest.fn(),
 }));
 
 jest.mock("child_process", () => ({
@@ -75,7 +76,7 @@ describe("POST /process/run", () => {
       .send({ targetColor: "450907", threshold: 25 });
 
     expect(response.status).toBe(500);
-    expect(response.body.error).toMatch(/Failed to execute processor jar/i);
+    expect(response.body.error).toMatch(/simulated stderr/i);
     expect(response.body.details).toMatch(/simulated stderr/i);
   });
 
@@ -83,6 +84,14 @@ describe("POST /process/run", () => {
     fs.existsSync
       .mockReturnValueOnce(true)
       .mockReturnValueOnce(true);
+
+    fs.readFileSync.mockReturnValue(
+      [
+        "timestamp,x,y",
+        "0.000,200,436",
+        "1.000,193,454",
+      ].join("\n")
+    );
 
     execFile.mockImplementation((cmd, args, opts, cb) => {
       cb(null, "simulated stdout", "");
@@ -99,6 +108,8 @@ describe("POST /process/run", () => {
     expect(response.status).toBe(200);
     expect(response.body.status).toBe("done");
     expect(response.body.outputCsvPath).toContain("output.csv");
+    expect(response.body.rowCount).toBe(2);
+    expect(response.body.rows[0]).toEqual({ timestamp: 0, x: 200, y: 436 });
     expect(response.body.stdout).toBe("simulated stdout");
     expect(execFile).toHaveBeenCalledTimes(1);
   });
@@ -107,6 +118,13 @@ describe("POST /process/run", () => {
     fs.existsSync
       .mockReturnValueOnce(true)
       .mockReturnValueOnce(true);
+
+    fs.readFileSync.mockReturnValue(
+      [
+        "timestamp,x,y",
+        "0.000,200,436",
+      ].join("\n")
+    );
 
     execFile.mockImplementation((cmd, args, opts, cb) => {
       cb(null, "simulated stdout", "");
@@ -126,5 +144,54 @@ describe("POST /process/run", () => {
     expect(args[2]).toContain("processor");
     expect(args[2]).toContain("ensantina.mp4");
     expect(response.body.inputVideoPath).toContain("ensantina.mp4");
+  });
+});
+
+describe("POST /api/process", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("returns frontend-shaped data response", async () => {
+    fs.existsSync
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(true);
+
+    fs.readFileSync.mockReturnValue(
+      [
+        "timestamp,x,y",
+        "0.000,200,436",
+        "1.000,-1,-1",
+      ].join("\n")
+    );
+
+    execFile.mockImplementation((cmd, args, opts, cb) => {
+      cb(null, "simulated stdout", "");
+    });
+
+    const response = await request(app)
+      .post("/api/process")
+      .send({
+        targetColor: "450907",
+        threshold: 25,
+        outputCsv: "output.csv",
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.summary.rowCount).toBe(2);
+    expect(response.body.data.summary.foundCount).toBe(1);
+    expect(response.body.data.summary.missingCount).toBe(1);
+    expect(response.body.data.rows[1]).toEqual({ timestamp: 1, x: -1, y: -1 });
+  });
+
+  test("returns 400-style validation error for missing targetColor", async () => {
+    const response = await request(app)
+      .post("/api/process")
+      .send({ threshold: 25 });
+
+    expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error).toMatch(/targetColor is required/i);
   });
 });
