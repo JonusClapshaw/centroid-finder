@@ -172,6 +172,28 @@ describe("POST /process/run", () => {
     expect(args[2]).toContain("ensantina.mp4");
     expect(response.body.inputVideoPath).toContain("ensantina.mp4");
   });
+
+  test("returns 500 when CSV cannot be read after java succeeds", async () => {
+    fs.existsSync
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(true);
+
+    execFile.mockImplementation((cmd, args, opts, cb) => {
+      cb(null, "simulated stdout", "");
+    });
+
+    fs.readFileSync.mockImplementation(() => {
+      throw new Error("ENOENT: no such file or directory");
+    });
+
+    const response = await request(app)
+      .post("/process/run")
+      .send({ targetColor: "450907", threshold: 25 });
+
+    expect(response.status).toBe(500);
+    expect(response.body.error).toMatch(/ENOENT/i);
+    expect(response.body.details).toMatch(/ENOENT/i);
+  });
 });
 
 // These tests cover the frontend-oriented route, which uses the same backend pipeline
@@ -224,5 +246,58 @@ describe("POST /api/process", () => {
     expect(response.status).toBe(400);
     expect(response.body.success).toBe(false);
     expect(response.body.error).toMatch(/targetColor is required/i);
+  });
+
+  test("returns 500 when processor jar is missing", async () => {
+    fs.existsSync.mockReturnValue(false);
+
+    const response = await request(app)
+      .post("/api/process")
+      .send({ targetColor: "450907", threshold: 25 });
+
+    expect(response.status).toBe(500);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error).toMatch(/Processor jar not found/i);
+    expect(execFile).not.toHaveBeenCalled();
+  });
+
+  test("returns 500 when java execution fails", async () => {
+    fs.existsSync
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(true);
+
+    execFile.mockImplementation((cmd, args, opts, cb) => {
+      cb(new Error("java failed"), "", "simulated stderr");
+    });
+
+    const response = await request(app)
+      .post("/api/process")
+      .send({ targetColor: "450907", threshold: 25 });
+
+    expect(response.status).toBe(500);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error).toMatch(/simulated stderr/i);
+  });
+
+  test("returns 500 when CSV cannot be read after java succeeds", async () => {
+    fs.existsSync
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(true);
+
+    execFile.mockImplementation((cmd, args, opts, cb) => {
+      cb(null, "simulated stdout", "");
+    });
+
+    fs.readFileSync.mockImplementation(() => {
+      throw new Error("EACCES: permission denied");
+    });
+
+    const response = await request(app)
+      .post("/api/process")
+      .send({ targetColor: "450907", threshold: 25 });
+
+    expect(response.status).toBe(500);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error).toMatch(/EACCES/i);
   });
 });
