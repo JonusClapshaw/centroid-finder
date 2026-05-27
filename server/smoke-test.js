@@ -16,7 +16,7 @@ async function main() {
   }
   const health = await readJson(healthResponse);
 
-  const processResponse = await fetch(`${baseUrl}/process/run`, {
+  const processResponse = await fetch(`${baseUrl}/api/process`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -29,16 +29,17 @@ async function main() {
 
   if (!processResponse.ok) {
     const details = await processResponse.text();
-    throw new Error(`POST /process/run failed with status ${processResponse.status}: ${details}`);
+    throw new Error(`POST /api/process failed with status ${processResponse.status}: ${details}`);
   }
 
   const processResult = await readJson(processResponse);
 
   console.log("Health OK:", health);
   console.log("Process OK:", {
-    status: processResult.status,
-    inputVideoPath: processResult.inputVideoPath,
-    outputCsvPath: processResult.outputCsvPath,
+    success: processResult.success,
+    inputVideoPath: processResult.data?.inputVideoPath,
+    outputCsvPath: processResult.data?.outputCsvPath,
+    rowCount: processResult.data?.summary?.rowCount,
   });
 }
 

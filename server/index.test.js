@@ -13,11 +13,35 @@ const fs = require("fs");
 const { execFile } = require("child_process");
 const app = require("./index");
 
+// These tests verify browser-facing behavior around API namespace aliases and CORS headers.
+describe("Frontend API compatibility", () => {
+  // Confirms middleware runs before route handler and sets CORS headers.
+  test("adds CORS headers on health route", async () => {
+    const response = await request(app).get("/api/health");
+
+    expect(response.status).toBe(200);
+    expect(response.headers["access-control-allow-origin"]).toBe("*");
+    expect(response.body).toEqual({ status: "ok" });
+  });
+
+  test("supports API namespace aliases for videos", async () => {
+    const response = await request(app).get("/api/videos");
+
+    expect(response.status).toBe(200);
+    expect(Array.isArray(response.body.videos)).toBe(true);
+    expect(response.body.videos.length).toBeGreaterThan(0);
+  });
+});
+
+// These tests cover the raw processing route call chain:
+// resolveProcessRequest() -> runProcessorAndReadCsv() -> execFileAsync() -> parseCsvRows().
 describe("POST /process/run", () => {
+  // Reset mock call history so each test validates one branch in isolation.
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
+  // Validation branch: resolveProcessRequest() should reject early before any file/process I/O.
   test("returns 400 when targetColor is missing", async () => {
     const response = await request(app)
       .post("/process/run")
@@ -62,6 +86,7 @@ describe("POST /process/run", () => {
     expect(execFile).not.toHaveBeenCalled();
   });
 
+  // Execution failure branch: java process started but exits with error/stderr.
   test("returns 500 when java execution fails", async () => {
     fs.existsSync
       .mockReturnValueOnce(true)
@@ -80,6 +105,7 @@ describe("POST /process/run", () => {
     expect(response.body.details).toMatch(/simulated stderr/i);
   });
 
+  // Happy path branch: java succeeds, CSV is parsed, and rows are returned.
   test("returns 200 when java execution succeeds", async () => {
     fs.existsSync
       .mockReturnValueOnce(true)
@@ -114,6 +140,7 @@ describe("POST /process/run", () => {
     expect(execFile).toHaveBeenCalledTimes(1);
   });
 
+  // Verifies request input is propagated into java args used by child_process.execFile.
   test("passes videoPath to Java program", async () => {
     fs.existsSync
       .mockReturnValueOnce(true)
@@ -147,11 +174,14 @@ describe("POST /process/run", () => {
   });
 });
 
+// These tests cover the frontend-oriented route, which uses the same backend pipeline
+// but returns a UI-friendly payload: { success, data: { summary, rows, ... } }.
 describe("POST /api/process", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
+  // Happy path with one detected centroid and one missing centroid in summary counts.
   test("returns frontend-shaped data response", async () => {
     fs.existsSync
       .mockReturnValueOnce(true)
@@ -185,6 +215,7 @@ describe("POST /api/process", () => {
     expect(response.body.data.rows[1]).toEqual({ timestamp: 1, x: -1, y: -1 });
   });
 
+  // Validation error branch with frontend response shape.
   test("returns 400-style validation error for missing targetColor", async () => {
     const response = await request(app)
       .post("/api/process")
