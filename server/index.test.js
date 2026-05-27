@@ -102,4 +102,29 @@ describe("POST /process/run", () => {
     expect(response.body.stdout).toBe("simulated stdout");
     expect(execFile).toHaveBeenCalledTimes(1);
   });
+
+  test("passes videoPath to Java program", async () => {
+    fs.existsSync
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(true);
+
+    execFile.mockImplementation((cmd, args, opts, cb) => {
+      cb(null, "simulated stdout", "");
+    });
+
+    const response = await request(app)
+      .post("/process/run")
+      .send({
+        videoPath: "processor/sampleInput/ensantina.mp4",
+        targetColor: "450907",
+        threshold: 25,
+      });
+
+    expect(response.status).toBe(200);
+    expect(execFile).toHaveBeenCalledTimes(1);
+    const args = execFile.mock.calls[0][1];
+    expect(args[2]).toContain("processor");
+    expect(args[2]).toContain("ensantina.mp4");
+    expect(response.body.inputVideoPath).toContain("ensantina.mp4");
+  });
 });

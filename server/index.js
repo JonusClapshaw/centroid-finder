@@ -68,6 +68,7 @@ app.get("/mock/results", (_req, res) => {
 
 app.post("/process/run", (req, res) => {
   const {
+    videoPath,
     inputPath = "processor/sampleInput/ensantina.mp4",
     outputCsv = "output.csv",
     targetColor,
@@ -92,9 +93,11 @@ app.post("/process/run", (req, res) => {
     return;
   }
 
-  const resolvedInputPath = path.isAbsolute(inputPath)
-    ? inputPath
-    : path.join(repoRoot, inputPath);
+  const selectedInputPath = videoPath || inputPath;
+
+  const resolvedInputPath = path.isAbsolute(selectedInputPath)
+    ? selectedInputPath
+    : path.join(repoRoot, selectedInputPath);
 
   if (!fs.existsSync(resolvedInputPath)) {
     res.status(400).json({ error: `Input video not found: ${resolvedInputPath}` });
@@ -120,6 +123,7 @@ app.post("/process/run", (req, res) => {
 
       res.json({
         status: "done",
+        inputVideoPath: resolvedInputPath,
         outputCsvPath: resolvedOutputCsv,
         stdout,
         stderr,
