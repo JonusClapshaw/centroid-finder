@@ -1,10 +1,20 @@
 ## refactoring code
 * What improvements can you make to the design/architecture of your code?
+    * Cut long arguments to a shorter more readable version.
 * How can you split up large methods or classes into smaller components?
+    * Taking re-used methods and cutting them into smaller classes.
+    * Adding more public classes to our code.
 * Are there unused files/methods that can be removed?
+    * ImageSummaryApp
+    * TBD
 * Where would additional Java interfaces be appropriate?
+    * TBD
 * How can you make things simpler, more-usable, and easier to maintain?
+    * Public classes
+    * Constant variables
+    * Documentation on methods and comments
 * Other refactoring improvements?
+    * TBD
 ## adding tests
 * What portions of your code are untested / only lightly tested?
 * Where would be the highest priority places to add new tests?
