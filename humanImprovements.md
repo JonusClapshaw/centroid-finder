@@ -35,14 +35,26 @@
     * TBD
 ## writing documentation
 * What portions of your code are missing Javadoc/JSdoc for the methods/classes?
+    * Writing documentation for mostly all our test
+    * Writing documentation and expection outcome for classes
 * What documentation could be made clearer or improved?
+    * Most of the ending codes implemented in stage 2
+    * TBD
 * Are there sections of dead code that are commented out?
+    * No
 * Where would be the most important places to add documentation to make your code easier to read?
+    * On top of our classes and functions
 * Other documentation improvements?
+    * TBD
 ## improving performance (optional)
 * What parts of your code / tests run particularly slowly?
+    * The 7 minute long video
+    * More testing for check time
 * What speed improvements would most make running / maintaining your code better?
+    * Parsing argument to take less characters
+    * Checking loops and recursive methods
 * Other performance improvements?
+    * TBD
 ## hardening security (optional)
 * What packages / images are out of date / have security issues?
 * Where could you have better input validation in your code to prevent malicious use?
