@@ -17,14 +17,22 @@
     * TBD
 ## adding tests
 * What portions of your code are untested / only lightly tested?
+    * Most of our code does not have a lot of edge-case tests.
 * Where would be the highest priority places to add new tests?
+    * More edge-case testing for CsvWriter.java.
 * Other testing improvements?
+    * TBD
 ## improving error handling
 * What parts of your code are brittle?
+    * Little to no error handing for threshold and color picker.
 * Where could you better be using exceptions?
+    * More IllegalArgumentExceptions.
 * Where can you better add input validation to check invalid input?
+    * Better input validation in VideoProcessorApp.java.
 * How can you better be resolving/logging/surfacing errors? Hint: almost any place you're using "throws Exception" or "catch(Exception e)" should likely be improved to specify the specific types of exceptions that might be thrown or caught.
+    * Error messages can be better written for debugging purposes.
 * Other error handling improvements?
+    * TBD
 ## writing documentation
 * What portions of your code are missing Javadoc/JSdoc for the methods/classes?
 * What documentation could be made clearer or improved?
