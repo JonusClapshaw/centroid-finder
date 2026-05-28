@@ -33,3 +33,5 @@ output*.csv
 *.mp4
 *.mov
 *.avi
+
+node_modules
