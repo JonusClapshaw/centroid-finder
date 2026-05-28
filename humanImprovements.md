@@ -57,11 +57,21 @@
     * TBD
 ## hardening security (optional)
 * What packages / images are out of date / have security issues?
+    * We need to confirm that our installed packages are being properly connected.
 * Where could you have better input validation in your code to prevent malicious use?
+    * Add a hard limit to the amount of users processing videos
 * Other security improvements?
+    * Prevent code injections
+    * TBD
 ## bug fixes (optional)
 * What bugs do you know exist?
+    * gitignore was not properly ignoring files
+    * Invalid arguments can break our code
+    * TBD
 * What parts of the code do you think might be causing them?
+    * Argument issues may come from VideoProcessorApp.java
 * Other bug fix improvements?
+    * TBD
 ## other
 * Any other improvements in general you could make?
+    * TBD
