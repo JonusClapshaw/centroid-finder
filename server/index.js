@@ -29,9 +29,9 @@ const { execFile } = require("child_process");
      -> summarize rows (foundCount/missingCount)
      -> res.json({ success, data: { paths, summary, rows } })
 
-  4) Mock/static routes
+  4) Static/discovery routes
     - GET /health and /api/health return server status.
-    - GET /videos and /api/videos return mock video catalog.
+    - GET /videos and /api/videos return discovered video catalog from processor/sampleInput.
     - GET /results, /api/results, /results/:videoId, /api/results/:videoId return mock result data.
     - GET /mock/results returns a convenience mock payload.
 
@@ -61,9 +61,8 @@ app.use((req, res, next) => {
   next();
 });
 
-const mockVideos = [
-  { id: "ensantina.mp4", name: "ensantina.mp4", durationSeconds: 480 },
-];
+const videoInputDir = path.join(repoRoot, "processor", "sampleInput");
+const VIDEO_EXTENSIONS = new Set([".mp4", ".mov", ".avi", ".webm"]);
 
 const mockRows = [
   { timestamp: 0.0, x: 200, y: 436 },
@@ -94,6 +93,24 @@ const jobResults = new Map();
 
 function createJobId() {
   return `job-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+}
+
+function discoverVideos() {
+  try {
+    const files = fs.readdirSync(videoInputDir, { withFileTypes: true });
+    return files
+      .filter((entry) => entry.isFile())
+      .map((entry) => entry.name)
+      .filter((name) => VIDEO_EXTENSIONS.has(path.extname(name).toLowerCase()))
+      .sort((a, b) => a.localeCompare(b))
+      .map((name) => ({
+        id: name,
+        name,
+        durationSeconds: 0,
+      }));
+  } catch {
+    return [];
+  }
 }
 
 function findThumbnailPath(filename) {
@@ -254,12 +271,12 @@ app.get("/api/health", (_req, res) => {
 
 // Mock catalog route used by UI for video selection.
 app.get("/videos", (_req, res) => {
-  res.json({ videos: mockVideos });
+  res.json({ videos: discoverVideos() });
 });
 
 // API namespace alias for frontend consistency.
 app.get("/api/videos", (_req, res) => {
-  res.json({ videos: mockVideos });
+  res.json({ videos: discoverVideos() });
 });
 
 app.get("/video/:filename", (req, res) => {

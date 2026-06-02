@@ -37,9 +37,12 @@ describe("Frontend API compatibility", () => {
 
     expect(response.status).toBe(200);
     expect(Array.isArray(response.body.videos)).toBe(true);
-    expect(response.body.videos).toEqual([
-      expect.objectContaining({ id: "ensantina.mp4", name: "ensantina.mp4" }),
-    ]);
+    expect(response.body.videos.length).toBeGreaterThan(0);
+    expect(response.body.videos).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "ensantina.mp4", name: "ensantina.mp4" }),
+      ])
+    );
   });
 
   test("serves a real video file for api video route", async () => {
