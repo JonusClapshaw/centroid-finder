@@ -1,9 +1,13 @@
 const request = require("supertest");
 
-jest.mock("fs", () => ({
-  existsSync: jest.fn(),
-  readFileSync: jest.fn(),
-}));
+jest.mock("fs", () => {
+  const actualFs = jest.requireActual("fs");
+  return {
+    ...actualFs,
+    existsSync: jest.fn(),
+    readFileSync: jest.fn(),
+  };
+});
 
 jest.mock("child_process", () => ({
   execFile: jest.fn(),
@@ -15,6 +19,10 @@ const app = require("./index");
 
 // These tests verify browser-facing behavior around API namespace aliases and CORS headers.
 describe("Frontend API compatibility", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   // Confirms middleware runs before route handler and sets CORS headers.
   test("adds CORS headers on health route", async () => {
     const response = await request(app).get("/api/health");
@@ -29,7 +37,50 @@ describe("Frontend API compatibility", () => {
 
     expect(response.status).toBe(200);
     expect(Array.isArray(response.body.videos)).toBe(true);
-    expect(response.body.videos.length).toBeGreaterThan(0);
+    expect(response.body.videos).toEqual([
+      expect.objectContaining({ id: "ensantina.mp4", name: "ensantina.mp4" }),
+    ]);
+  });
+
+  test("serves a real video file for api video route", async () => {
+    fs.existsSync.mockImplementation((filePath) => String(filePath).includes("ensantina.mp4"));
+
+    const response = await request(app).get("/api/video/ensantina.mp4");
+
+    expect(response.status).toBe(200);
+    expect(response.headers["content-type"]).toMatch(/video\//);
+  });
+
+  test("returns 404 for missing video file", async () => {
+    fs.existsSync.mockReturnValue(false);
+
+    const response = await request(app).get("/api/video/demo.mp4");
+
+    expect(response.status).toBe(404);
+    expect(response.body.error).toMatch(/Video not found/i);
+  });
+
+  test("rejects unsafe video paths", async () => {
+    const response = await request(app).get("/api/video/%2E%2E%2Fsecret.mp4");
+
+    expect(response.status).toBe(404);
+    expect(response.body.error).toMatch(/Video not found/i);
+  });
+
+  test("serves a thumbnail placeholder for known video names", async () => {
+    fs.existsSync.mockReturnValue(false);
+
+    const response = await request(app).get("/api/thumbnail/ensantina.mp4");
+
+    expect(response.status).toBe(200);
+    expect(response.headers["content-type"]).toMatch(/image\/svg\+xml/);
+  });
+
+  test("rejects unsafe thumbnail paths", async () => {
+    const response = await request(app).get("/api/thumbnail/%2E%2E%2Fsecret.txt");
+
+    expect(response.status).toBe(404);
+    expect(response.body.error).toMatch(/Thumbnail not found/i);
   });
 });
 
@@ -231,10 +282,57 @@ describe("POST /api/process", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
+    expect(response.body.jobId).toMatch(/^job-/);
+    expect(response.body.status).toBe("completed");
     expect(response.body.data.summary.rowCount).toBe(2);
     expect(response.body.data.summary.foundCount).toBe(1);
     expect(response.body.data.summary.missingCount).toBe(1);
     expect(response.body.data.rows[1]).toEqual({ timestamp: 1, x: -1, y: -1 });
+  });
+
+  test("supports polling result by jobId via /api/results?jobId=...", async () => {
+    fs.existsSync
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(true);
+
+    fs.readFileSync.mockReturnValue(
+      [
+        "timestamp,x,y",
+        "0.000,200,436",
+      ].join("\n")
+    );
+
+    execFile.mockImplementation((cmd, args, opts, cb) => {
+      cb(null, "simulated stdout", "");
+    });
+
+    const processResponse = await request(app)
+      .post("/api/process")
+      .send({
+        targetColor: "450907",
+        threshold: 25,
+      });
+
+    expect(processResponse.status).toBe(200);
+    expect(processResponse.body.jobId).toBeTruthy();
+
+    const pollResponse = await request(app)
+      .get(`/api/results?jobId=${processResponse.body.jobId}`);
+
+    expect(pollResponse.status).toBe(200);
+    expect(pollResponse.body.success).toBe(true);
+    expect(pollResponse.body.jobId).toBe(processResponse.body.jobId);
+    expect(pollResponse.body.status).toBe("completed");
+    expect(pollResponse.body.data.summary.rowCount).toBe(1);
+  });
+
+  test("returns 404 when polling unknown jobId", async () => {
+    const response = await request(app)
+      .get("/api/results?jobId=job-does-not-exist");
+
+    expect(response.status).toBe(404);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error).toMatch(/Job result not found/i);
   });
 
   // Validation error branch with frontend response shape.

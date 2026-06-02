@@ -63,7 +63,6 @@ app.use((req, res, next) => {
 
 const mockVideos = [
   { id: "ensantina.mp4", name: "ensantina.mp4", durationSeconds: 480 },
-  { id: "demo.mp4", name: "demo.mp4", durationSeconds: 120 },
 ];
 
 const mockRows = [
@@ -89,6 +88,59 @@ const mockResults = {
     ],
   },
 };
+
+// In-memory result cache keyed by jobId so frontend polling can fetch process output.
+const jobResults = new Map();
+
+function createJobId() {
+  return `job-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+}
+
+function findThumbnailPath(filename) {
+  const safeName = path.basename(filename || "");
+  if (!safeName || safeName !== filename) {
+    return null;
+  }
+
+  const parsed = path.parse(safeName);
+  const candidates = [
+    path.join(repoRoot, "processor", "sampleInput", `${parsed.name}.jpg`),
+    path.join(repoRoot, "processor", "sampleInput", `${parsed.name}.jpeg`),
+    path.join(repoRoot, "processor", "sampleInput", `${parsed.name}.png`),
+    path.join(repoRoot, "processor", "sampleOutput", `${parsed.name}.png`),
+    path.join(repoRoot, "processor", "sampleOutput", `${parsed.name}.jpg`),
+  ];
+
+  return candidates.find((candidate) => fs.existsSync(candidate)) || null;
+}
+
+function findVideoPath(filename) {
+  const safeName = path.basename(filename || "");
+  if (!safeName || safeName !== filename) {
+    return null;
+  }
+
+  const candidates = [
+    path.join(repoRoot, "processor", "sampleInput", safeName),
+    path.join(repoRoot, "sampleInput", safeName),
+  ];
+
+  return candidates.find((candidate) => fs.existsSync(candidate)) || null;
+}
+
+function sendPlaceholderThumbnail(res, filename) {
+  const label = path.parse(filename).name || "video";
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180">
+      <rect width="320" height="180" fill="#1f2937"/>
+      <circle cx="160" cy="90" r="34" fill="#f59e0b" opacity="0.9"/>
+      <polygon points="150,72 150,108 182,90" fill="#111827"/>
+      <text x="160" y="150" text-anchor="middle" fill="#f9fafb" font-family="Arial, sans-serif" font-size="18">${label}</text>
+    </svg>
+  `.trim();
+
+  res.type("image/svg+xml").send(svg);
+}
 
 // Promise wrapper for child_process.execFile so route handlers can await Java execution.
 // Called by: runProcessorAndReadCsv().
@@ -210,6 +262,76 @@ app.get("/api/videos", (_req, res) => {
   res.json({ videos: mockVideos });
 });
 
+app.get("/video/:filename", (req, res) => {
+  const videoPath = findVideoPath(req.params.filename);
+  if (!videoPath) {
+    res.status(404).json({ error: "Video not found." });
+    return;
+  }
+
+  res.sendFile(videoPath);
+});
+
+app.get("/api/video/:filename", (req, res) => {
+  const videoPath = findVideoPath(req.params.filename);
+  if (!videoPath) {
+    res.status(404).json({ error: "Video not found." });
+    return;
+  }
+
+  res.sendFile(videoPath);
+});
+
+app.get("/videos/:filename", (req, res) => {
+  const videoPath = findVideoPath(req.params.filename);
+  if (!videoPath) {
+    res.status(404).json({ error: "Video not found." });
+    return;
+  }
+
+  res.sendFile(videoPath);
+});
+
+app.get("/api/videos/:filename", (req, res) => {
+  const videoPath = findVideoPath(req.params.filename);
+  if (!videoPath) {
+    res.status(404).json({ error: "Video not found." });
+    return;
+  }
+
+  res.sendFile(videoPath);
+});
+
+app.get("/thumbnail/:filename", (req, res) => {
+  const thumbnailPath = findThumbnailPath(req.params.filename);
+  if (path.basename(req.params.filename) !== req.params.filename) {
+    res.status(404).json({ error: "Thumbnail not found." });
+    return;
+  }
+
+  if (!thumbnailPath) {
+    sendPlaceholderThumbnail(res, req.params.filename);
+    return;
+  }
+
+  res.sendFile(thumbnailPath);
+});
+
+app.get("/api/thumbnail/:filename", (req, res) => {
+  const thumbnailPath = findThumbnailPath(req.params.filename);
+  if (path.basename(req.params.filename) !== req.params.filename) {
+    res.status(404).json({ error: "Thumbnail not found." });
+    return;
+  }
+
+  if (!thumbnailPath) {
+    sendPlaceholderThumbnail(res, req.params.filename);
+    return;
+  }
+
+  res.sendFile(thumbnailPath);
+});
+
 // Mock aggregate results route.
 app.get("/results", (_req, res) => {
   res.json({
@@ -219,6 +341,19 @@ app.get("/results", (_req, res) => {
 
 // API namespace alias for frontend consistency.
 app.get("/api/results", (_req, res) => {
+  const { jobId } = _req.query;
+
+  if (jobId) {
+    const job = jobResults.get(jobId);
+    if (!job) {
+      res.status(404).json({ success: false, error: "Job result not found." });
+      return;
+    }
+
+    res.json({ success: true, ...job });
+    return;
+  }
+
   res.json({
     results: Object.values(mockResults),
   });
@@ -282,19 +417,30 @@ app.post("/api/process", async (req, res) => {
     const config = resolveProcessRequest(req.body);
     const { rows } = await runProcessorAndReadCsv(config);
     const missingCount = rows.filter((row) => row.x === -1 && row.y === -1).length;
+    const jobId = createJobId();
+
+    const resultData = {
+      inputVideoPath: config.resolvedInputPath,
+      outputCsvPath: config.resolvedOutputCsv,
+      summary: {
+        rowCount: rows.length,
+        foundCount: rows.length - missingCount,
+        missingCount,
+      },
+      rows,
+    };
+
+    jobResults.set(jobId, {
+      jobId,
+      status: "completed",
+      data: resultData,
+    });
 
     res.json({
       success: true,
-      data: {
-        inputVideoPath: config.resolvedInputPath,
-        outputCsvPath: config.resolvedOutputCsv,
-        summary: {
-          rowCount: rows.length,
-          foundCount: rows.length - missingCount,
-          missingCount,
-        },
-        rows,
-      },
+      jobId,
+      status: "completed",
+      data: resultData,
     });
   } catch (caughtError) {
     const error = caughtError.error || caughtError;
