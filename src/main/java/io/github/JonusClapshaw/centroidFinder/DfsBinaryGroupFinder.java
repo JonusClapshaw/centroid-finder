@@ -43,7 +43,7 @@ public class DfsBinaryGroupFinder implements BinaryGroupFinder {
         for (int row = 0; row < image.length; row++) {
             for (int col = 0; col < image[row].length; col++) {
                 if (image[row][col] == 1 && !visited[row][col]) {
-                    groups.add(dfs(row, col, image, groups, visited));
+                    groups.add(dfs(row, col, image, visited));
                 }
             }
         }
@@ -51,7 +51,7 @@ public class DfsBinaryGroupFinder implements BinaryGroupFinder {
         return groups;
     }
 
-    private static Group dfs(int curR, int curC, int[][] image, List<Group> groups, boolean[][] visited) {
+    private static Group dfs(int curR, int curC, int[][] image, boolean[][] visited) {
         int[] stats = new int[3]; // [sumX, sumY, size]
         collectPixels(curR, curC, image, visited, stats);
         int size = stats[2];
