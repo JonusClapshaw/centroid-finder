@@ -18,7 +18,7 @@
 
 ## bug fixes (required)
 1. Align .gitignore behavior with tracked build artifacts to stop target/surefire output churn and reduce noisy diffs.
-2. Fix edge-case runtime failures caused by contract gaps (empty binary arrays, inconsistent validation assumptions across classes).
+2. Fix edge-case runtime failures caused by contract gaps (empty binary arrays, inconsistent validation assumptions across classes). (Implementing)
 
 ## hardening security (required)
 1. Add stricter path and filename validation at API boundaries to prevent traversal-style misuse and unsafe file access.
