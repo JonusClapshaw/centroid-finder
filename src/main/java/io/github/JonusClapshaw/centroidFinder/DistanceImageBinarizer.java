@@ -78,10 +78,31 @@ public class DistanceImageBinarizer implements ImageBinarizer {
      */
     @Override
     public BufferedImage toBufferedImage(int[][] image) {
-        BufferedImage output = new BufferedImage(image[0].length, image.length, BufferedImage.TYPE_INT_RGB);
+        if (image == null) {
+            throw new NullPointerException();
+        }
+        if (image.length == 0) {
+            throw new IllegalArgumentException();
+        }
+        if (image[0] == null) {
+            throw new NullPointerException();
+        }
 
-        int pWidth = image[0].length;
         int pHeight = image.length;
+        int pWidth = image[0].length;
+        if (pWidth == 0) {
+            throw new IllegalArgumentException();
+        }
+        for (int[] row : image) {
+            if (row == null) {
+                throw new NullPointerException();
+            }
+            if (row.length != pWidth) {
+                throw new IllegalArgumentException();
+            }
+        }
+
+        BufferedImage output = new BufferedImage(pWidth, pHeight, BufferedImage.TYPE_INT_RGB);
 
         for(int height = 0; height < pHeight; height++){
             for(int width = 0; width < pWidth; width++){

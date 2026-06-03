@@ -77,7 +77,8 @@ class ImageSummaryAppServiceTest {
         ImageIO.write(input, "png", inputImagePath.toFile());
 
         Path groupsCsvPath = Path.of("groups.csv");
-        Map<Path, byte[]> snapshot = snapshotFiles(List.of(groupsCsvPath));
+        Path binarizedPath = Path.of("binarized.png");
+        Map<Path, byte[]> snapshot = snapshotFiles(List.of(groupsCsvPath, binarizedPath));
 
         try {
             Files.writeString(groupsCsvPath, "stale-content");

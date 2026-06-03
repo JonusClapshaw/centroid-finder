@@ -283,4 +283,32 @@ public class DistanceImageBinarizerTest {
             assertEquals(targetColor, call[1]);
         }
     }
+
+    @Test
+    public void testToBufferedImageThrowsForEmptyImageArray() {
+        DistanceImageBinarizer binarizer = new DistanceImageBinarizer((a, b) -> 0.0, 0x000000, 1);
+
+        assertThrows(IllegalArgumentException.class, () -> binarizer.toBufferedImage(new int[0][0]));
+    }
+
+    @Test
+    public void testToBufferedImageThrowsForZeroWidthRows() {
+        DistanceImageBinarizer binarizer = new DistanceImageBinarizer((a, b) -> 0.0, 0x000000, 1);
+
+        int[][] binary = {{} };
+
+        assertThrows(IllegalArgumentException.class, () -> binarizer.toBufferedImage(binary));
+    }
+
+    @Test
+    public void testToBufferedImageThrowsForJaggedRows() {
+        DistanceImageBinarizer binarizer = new DistanceImageBinarizer((a, b) -> 0.0, 0x000000, 1);
+
+        int[][] binary = {
+            {1, 0},
+            {1}
+        };
+
+        assertThrows(IllegalArgumentException.class, () -> binarizer.toBufferedImage(binary));
+    }
 }
