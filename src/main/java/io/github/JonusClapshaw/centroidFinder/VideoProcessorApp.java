@@ -36,14 +36,31 @@ public class VideoProcessorApp {
             throw new IllegalArgumentException("Expected exactly 4 arguments.");
         }
 
-        String inputPath = args[0];
-        String outputCsvPath = args[1];
-        String targetColor = args[2];
+        String inputPath = args[0] == null ? "" : args[0].trim();
+        String outputCsvPath = args[1] == null ? "" : args[1].trim();
+        String targetColor = args[2] == null ? "" : args[2].trim();
+
+        if (inputPath.isBlank()) {
+            throw new IllegalArgumentException("inputPath must not be blank.");
+        }
+        if (outputCsvPath.isBlank()) {
+            throw new IllegalArgumentException("outputCsvPath must not be blank.");
+        }
+
         int threshold;
         try {
             threshold = Integer.parseInt(args[3]);
         } catch (NumberFormatException ex) {
             throw new IllegalArgumentException("threshold must be an integer.");
+        }
+
+        if (threshold < 0) {
+            throw new IllegalArgumentException("threshold must be non-negative.");
+        }
+
+        String normalizedColor = targetColor.startsWith("#") ? targetColor.substring(1) : targetColor;
+        if (normalizedColor.length() != 6 || !normalizedColor.matches("[0-9a-fA-F]{6}")) {
+            throw new IllegalArgumentException("targetColor must be a 6-digit RGB hex value.");
         }
 
 

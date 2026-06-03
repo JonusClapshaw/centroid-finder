@@ -9,13 +9,13 @@ public class VideoProcessorAppTest {
 
     @Test
     public void testParseArgsWithValidCommandLineValues() {
-        String[] args = {"input.mp4", "output.csv", "red", "40"};
+        String[] args = {"input.mp4", "output.csv", "FF0000", "40"};
 
         VideoProcessorApp.ParsedArgs parsed = VideoProcessorApp.parseArgs(args);
 
         assertEquals("input.mp4", parsed.inputPath());
         assertEquals("output.csv", parsed.outputCsvPath());
-        assertEquals("red", parsed.targetColor());
+        assertEquals("FF0000", parsed.targetColor());
         assertEquals(40, parsed.threshold());
     }
 
