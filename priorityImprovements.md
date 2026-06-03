@@ -1,8 +1,8 @@
 # Priority Improvements
 
 ## refactoring code (required)
-1. Refactor recursive flood fill in DfsBinaryGroupFinder.java to an iterative traversal to reduce stack overflow risk on large connected components.
-2. Remove/refactor dead and redundant structure (unused dfs parameters, duplicate imports, and legacy pathways like ImageSummaryApp flow overlap) to simplify maintenance.
+1. Refactor recursive flood fill in DfsBinaryGroupFinder.java to an iterative traversal to reduce stack overflow risk on large connected components. 
+2. Remove/refactor dead and redundant structure (unused dfs parameters, duplicate imports, and legacy pathways like ImageSummaryApp flow overlap) to simplify maintenance. (Implementing)
 
 ## adding tests (required)
 1. Fix and stabilize video fixture strategy in VideoFrameReader tests so CI does not depend on missing local files (ensantina path mismatch).
