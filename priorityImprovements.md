@@ -6,7 +6,7 @@
 
 ## adding tests (required)
 1. Fix and stabilize video fixture strategy in VideoFrameReader tests so CI does not depend on missing local files (ensantina path mismatch).
-2. Add high-value edge-case tests for input validation and boundary conditions in CsvWriter, DistanceImageBinarizer, and DfsBinaryGroupFinder (empty arrays, malformed input, no centroid cases).
+2. Add high-value edge-case tests for input validation and boundary conditions in CsvWriter, DistanceImageBinarizer, and DfsBinaryGroupFinder (empty arrays, malformed input, no centroid cases). (Implementing)
 
 ## improving error handling (required)
 1. Strengthen VideoProcessorApp argument validation (blank paths, negative threshold, invalid target color format) with precise IllegalArgumentException messages. (Implementing)
