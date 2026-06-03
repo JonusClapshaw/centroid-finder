@@ -9,7 +9,7 @@
 2. Add high-value edge-case tests for input validation and boundary conditions in CsvWriter, DistanceImageBinarizer, and DfsBinaryGroupFinder (empty arrays, malformed input, no centroid cases).
 
 ## improving error handling (required)
-1. Strengthen VideoProcessorApp argument validation (blank paths, negative threshold, invalid target color format) with precise IllegalArgumentException messages.
+1. Strengthen VideoProcessorApp argument validation (blank paths, negative threshold, invalid target color format) with precise IllegalArgumentException messages. (Implementing)
 2. Replace broad/legacy catch-and-print patterns with typed exception handling and consistent user-facing error surfaces across image and video entry points.
 
 ## writing documentation (required)
