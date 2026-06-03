@@ -74,4 +74,64 @@ public class VideoProcessorAppTest {
 
         assertEquals("threshold must be an integer.", ex.getMessage());
     }
+
+    @Test
+    public void testParseArgsThrowsWhenInputPathIsBlank() {
+        String[] args = {"", "output.csv", "FF0000", "40"};
+
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> VideoProcessorApp.parseArgs(args)
+        );
+
+        assertEquals("inputPath must not be blank.", ex.getMessage());
+    }
+
+    @Test
+    public void testParseArgsThrowsWhenOutputPathIsBlank() {
+        String[] args = {"input.mp4", "   ", "FF0000", "40"};
+
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> VideoProcessorApp.parseArgs(args)
+        );
+
+        assertEquals("outputCsvPath must not be blank.", ex.getMessage());
+    }
+
+    @Test
+    public void testParseArgsThrowsWhenThresholdIsNegative() {
+        String[] args = {"input.mp4", "output.csv", "FF0000", "-1"};
+
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> VideoProcessorApp.parseArgs(args)
+        );
+
+        assertEquals("threshold must be non-negative.", ex.getMessage());
+    }
+
+    @Test
+    public void testParseArgsThrowsWhenTargetColorIsWrongLength() {
+        String[] args = {"input.mp4", "output.csv", "FFF", "40"};
+
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> VideoProcessorApp.parseArgs(args)
+        );
+
+        assertEquals("targetColor must be a 6-digit RGB hex value.", ex.getMessage());
+    }
+
+    @Test
+    public void testParseArgsThrowsWhenTargetColorIsNonHex() {
+        String[] args = {"input.mp4", "output.csv", "GGGGGG", "40"};
+
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> VideoProcessorApp.parseArgs(args)
+        );
+
+        assertEquals("targetColor must be a 6-digit RGB hex value.", ex.getMessage());
+    }
 }
