@@ -5,8 +5,8 @@
 2. Remove/refactor dead and redundant structure (unused dfs parameters, duplicate imports, and legacy pathways like ImageSummaryApp flow overlap) to simplify maintenance. (Implementing)
 
 ## adding tests (required)
-1. Fix and stabilize video fixture strategy in VideoFrameReader tests so CI does not depend on missing local files (ensantina path mismatch). (Implementing)
-2. Add high-value edge-case tests for input validation and boundary conditions in CsvWriter, DistanceImageBinarizer, and DfsBinaryGroupFinder (empty arrays, malformed input, no centroid cases).
+1. Fix and stabilize video fixture strategy in VideoFrameReader tests so CI does not depend on missing local files (ensantina path mismatch).
+2. Add high-value edge-case tests for input validation and boundary conditions in CsvWriter, DistanceImageBinarizer, and DfsBinaryGroupFinder (empty arrays, malformed input, no centroid cases). (Implementing)
 
 ## improving error handling (required)
 1. Strengthen VideoProcessorApp argument validation (blank paths, negative threshold, invalid target color format) with precise IllegalArgumentException messages. (Implementing)
@@ -14,7 +14,7 @@
 
 ## writing documentation (required)
 1. Resolve contract/documentation mismatch for group ordering rules (BinaryGroupFinder docs vs Group.compareTo behavior) and document one canonical ordering.
-2. Update README run/validation instructions to match the current video pipeline, server routes, and packaging flow.
+2. Update README run/validation instructions to match the current video pipeline, server routes, and packaging flow. (Implementing)
 
 ## bug fixes (required)
 1. Align .gitignore behavior with tracked build artifacts to stop target/surefire output churn and reduce noisy diffs.
@@ -23,6 +23,7 @@
 ## hardening security (required)
 1. Add stricter path and filename validation at API boundaries to prevent traversal-style misuse and unsafe file access.
 2. Add input and workload limits for processing requests (validation, size/time limits, and request throttling strategy).
+(Implementing)
 
 ## improving performance (optional)
 1. Optimize color distance hot path by reducing expensive per-pixel math in EuclideanColorDistance and binarization loops.

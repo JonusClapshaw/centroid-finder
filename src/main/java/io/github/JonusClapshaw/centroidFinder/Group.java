@@ -12,16 +12,23 @@ package io.github.JonusClapshaw.centroidFinder;
  * This means the x coordinate of the centroid is the sum of all x values divided by the
  * number of pixels in the group, and similarly for the y coordinate.
  * 
- * Groups are naturally comparable. The comparison is done first by the group's size,
- * then by the x coordinate of the centroid, and finally by the y coordinate.
- * In a method that returns groups, they should be sorted in this natural order.
+ * Groups are naturally ordered in ASCENDING order by this class's {@link #compareTo} method:
+ * size first, then x coordinate of the centroid, then y coordinate of the centroid.
+ * Callers that want the canonical descending presentation (largest group first, ties broken
+ * by descending x then descending y) must reverse this order, for example via
+ * {@code groups.sort((a, b) -> b.compareTo(a))} or {@code Comparator.reverseOrder()}.
  */
 public record Group(int size, Coordinate centroid) implements Comparable<Group> {
 
     /**
-     * Compares this group with the specified group for order.
-     * The comparison is based on the group's size first, then the x coordinate of the centroid,
-     * and finally on the y coordinate of the centroid.
+     * Compares this group with the specified group for order, in ASCENDING natural order.
+     * The comparison is based first on size (smaller size = smaller group), then on the
+     * x coordinate of the centroid (smaller x = smaller group), and finally on the y
+     * coordinate of the centroid (smaller y = smaller group).
+     *
+     * <p>The canonical presentation order for a list of groups is the reverse of this:
+     * largest size first, ties broken by descending x, then descending y.
+     * Reverse this comparator to achieve that order.
      *
      * @param other the group to be compared with this group
      * @return a negative integer, zero, or a positive integer if this group is less than,
