@@ -33,19 +33,27 @@ public class VideoProcessorApp {
 
     static ParsedArgs parseArgs(String[] args) {
         if (args == null || args.length != 4) {
-            throw new IllegalArgumentException("Expected exactly 4 arguments.");
+            throw new IllegalArgumentException(
+                    "Expected exactly 4 arguments: <inputPath> <outputCsv> <targetColor> <threshold>");
         }
 
         String inputPath = args[0];
         String outputCsvPath = args[1];
         String targetColor = args[2];
+
         int threshold;
         try {
             threshold = Integer.parseInt(args[3]);
         } catch (NumberFormatException ex) {
-            throw new IllegalArgumentException("threshold must be an integer.");
+            throw new IllegalArgumentException(
+                    "threshold must be an integer, got: \"" + args[3] + "\"");
         }
 
+        // Validate all inputs up-front before any I/O is attempted.
+        InputValidator.validateInputPath(inputPath);
+        InputValidator.validateOutputCsvPath(outputCsvPath);
+        InputValidator.validateTargetColor(targetColor);
+        InputValidator.validateThreshold(threshold);
 
         return new ParsedArgs(inputPath, outputCsvPath, targetColor, threshold);
     }
