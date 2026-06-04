@@ -9,8 +9,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -66,6 +64,46 @@ class VideoProcessorTest {
         ), lines);
     }
 
+        @Test
+        void processFrames_usesFramesPerSecondToComputeTimestamps() throws IOException {
+        VideoProcessor processor = new VideoProcessor();
+        Path outputFile = tempDir.resolve("fps-based-timestamps.csv");
+
+        processor.processFrames(
+            List.of(frameWithWhitePixelAt(0, 0), frameWithWhitePixelAt(1, 1), frameWithWhitePixelAt(2, 2)),
+            outputFile.toString(),
+            "FFFFFF",
+            1,
+            2.0);
+
+        List<String> lines = Files.readAllLines(outputFile);
+        assertEquals(List.of(
+            "timestamp,x,y",
+            "0.000,0,0",
+            "0.500,1,1",
+            "1.000,2,2"
+        ), lines);
+        }
+
+        @Test
+        void processFrames_acceptsLowerCaseHexWithHashPrefix() throws IOException {
+        VideoProcessor processor = new VideoProcessor();
+        Path outputFile = tempDir.resolve("lowercase-hex.csv");
+
+        processor.processFrames(
+            List.of(frameWithWhitePixelAt(2, 1)),
+            outputFile.toString(),
+            "#ffffff",
+            1,
+            30.0);
+
+        List<String> lines = Files.readAllLines(outputFile);
+        assertEquals(List.of(
+            "timestamp,x,y",
+            "0.000,2,1"
+        ), lines);
+        }
+
     @Test
     void processFrames_rejectsInvalidTargetColor() {
         VideoProcessor processor = new VideoProcessor();
@@ -78,17 +116,14 @@ class VideoProcessorTest {
     }
 
     @Test
-    void samplingIntervalFrames_returnsThirtyForThirtyFpsInput() {
+    void processFrames_rejectsNonHexTargetColor() {
         VideoProcessor processor = new VideoProcessor();
 
-        assertEquals(30, processor.samplingIntervalFrames(30.0, 1.0));
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> processor.processFrames(List.of(), "unused.csv", "GGGGGG", 1, 30.0));
+
+        assertEquals("targetColor must be a 6-digit RGB hex value.", exception.getMessage());
     }
 
-    @Test
-    void samplingIntervalFrames_neverReturnsLessThanOne() {
-        VideoProcessor processor = new VideoProcessor();
-
-        assertEquals(1, processor.samplingIntervalFrames(0.0, 1.0));
-        assertEquals(1, processor.samplingIntervalFrames(0.5, 1.0));
-    }
 }
