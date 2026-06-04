@@ -5,7 +5,7 @@
 2. Remove/refactor dead and redundant structure (unused dfs parameters, duplicate imports, and legacy pathways like ImageSummaryApp flow overlap) to simplify maintenance. (Implementing)
 
 ## adding tests (required)
-1. Fix and stabilize video fixture strategy in VideoFrameReader tests so CI does not depend on missing local files (ensantina path mismatch).
+1. Fix and stabilize video fixture strategy in VideoFrameReader tests so CI does not depend on missing local files (ensantina path mismatch). (Implementing)
 2. Add high-value edge-case tests for input validation and boundary conditions in CsvWriter, DistanceImageBinarizer, and DfsBinaryGroupFinder (empty arrays, malformed input, no centroid cases).
 
 ## improving error handling (required)
