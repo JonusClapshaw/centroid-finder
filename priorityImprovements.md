@@ -14,7 +14,7 @@
 
 ## writing documentation (required)
 1. Resolve contract/documentation mismatch for group ordering rules (BinaryGroupFinder docs vs Group.compareTo behavior) and document one canonical ordering.
-2. Update README run/validation instructions to match the current video pipeline, server routes, and packaging flow.
+2. Update README run/validation instructions to match the current video pipeline, server routes, and packaging flow. (Implementing)
 
 ## bug fixes (required)
 1. Align .gitignore behavior with tracked build artifacts to stop target/surefire output churn and reduce noisy diffs.
