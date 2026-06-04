@@ -263,7 +263,7 @@ class InputValidatorTest {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                 () -> VideoProcessorApp.parseArgs(
                         new String[]{realInputFile(), "sampleOutput/out.csv", "#FF8800", "-1"}));
-        assertTrue(ex.getMessage().contains(">= 0"), ex.getMessage());
+        assertTrue(ex.getMessage().contains("non-negative"), ex.getMessage());
     }
 
     @Test

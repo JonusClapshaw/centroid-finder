@@ -36,7 +36,7 @@ public class VideoProcessorAppTest {
                 () -> VideoProcessorApp.parseArgs(null)
         );
 
-        assertEquals("Expected exactly 4 arguments.", ex.getMessage());
+        assertEquals("Expected exactly 4 arguments: <inputPath> <outputCsv> <targetColor> <threshold>", ex.getMessage());
     }
 
     @Test
@@ -48,7 +48,7 @@ public class VideoProcessorAppTest {
                 () -> VideoProcessorApp.parseArgs(args)
         );
 
-        assertEquals("Expected exactly 4 arguments.", ex.getMessage());
+        assertEquals("Expected exactly 4 arguments: <inputPath> <outputCsv> <targetColor> <threshold>", ex.getMessage());
     }
 
     @Test
@@ -60,7 +60,7 @@ public class VideoProcessorAppTest {
                 () -> VideoProcessorApp.parseArgs(args)
         );
 
-        assertEquals("Expected exactly 4 arguments.", ex.getMessage());
+        assertEquals("Expected exactly 4 arguments: <inputPath> <outputCsv> <targetColor> <threshold>", ex.getMessage());
     }
 
     @Test
@@ -72,7 +72,7 @@ public class VideoProcessorAppTest {
                 () -> VideoProcessorApp.parseArgs(args)
         );
 
-        assertEquals("threshold must be an integer.", ex.getMessage());
+        assertEquals("threshold must be an integer, got: \"forty\"", ex.getMessage());
     }
 
     @Test
