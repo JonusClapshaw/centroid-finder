@@ -23,6 +23,7 @@
 ## hardening security (required)
 1. Add stricter path and filename validation at API boundaries to prevent traversal-style misuse and unsafe file access.
 2. Add input and workload limits for processing requests (validation, size/time limits, and request throttling strategy).
+(Implementing)
 
 ## improving performance (optional)
 1. Optimize color distance hot path by reducing expensive per-pixel math in EuclideanColorDistance and binarization loops.
