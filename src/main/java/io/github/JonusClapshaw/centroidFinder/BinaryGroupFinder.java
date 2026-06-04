@@ -26,9 +26,9 @@ public interface BinaryGroupFinder {
     * The division should be done as INTEGER DIVISION.
     *
     * The groups are sorted in DESCENDING order according to Group's compareTo method
-    * (size first, then x, then y). That is, the largest group will be first, the 
-    * smallest group will be last, and ties will be broken first by descending 
-    * y value, then descending x value.
+    * (size first, then x, then y). That is, the largest group will be first, the
+    * smallest group will be last, and ties in size will be broken first by descending
+    * x value, then descending y value.
     * 
     * @param image a rectangular 2D array containing only 1s and 0s
     * @return the found groups of connected pixels in descending order
