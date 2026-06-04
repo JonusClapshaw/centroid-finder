@@ -100,6 +100,6 @@ public class VideoFrameReader {
      */
     public boolean isValidVideoFile() {
         File file = new File(videoPath);
-        return file.exists() && file.isFile() && file.canRead();
+        return file.exists() && file.isFile() && file.canRead() && file.length() > 0;
     }
 }
