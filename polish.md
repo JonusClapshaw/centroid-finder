@@ -1,6 +1,8 @@
 ## Polish
 
 * Clean up un-needed code
-* Re-write readMe
-* Show image of front end
+* Re-write readMe/Expand upon
+* Show image/gif of front end
 * Implement server to main branch
+* Clean up documentation on main
+* Integrate an implementation.md for goals /time management

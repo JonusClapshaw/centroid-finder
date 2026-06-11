@@ -1,7 +1,7 @@
-io\github\JonusClapshaw\centroidFinder\BinarizingImageGroupFinderTest.class
 io\github\JonusClapshaw\centroidFinder\DistanceImageBinarizerTest$SpyColorDistanceFinder.class
 io\github\JonusClapshaw\centroidFinder\BinarizingImageGroupFinderTest$FakeBinaryGroupFinder.class
-io\github\JonusClapshaw\centroidFinder\DistanceImageBinarizerTest.class
 io\github\JonusClapshaw\centroidFinder\EuclideanColorDistanceTest.class
-io\github\JonusClapshaw\centroidFinder\BinarizingImageGroupFinderTest$FakeImageBinarizer.class
 io\github\JonusClapshaw\centroidFinder\DfsBinaryGroupFinderTest.class
+io\github\JonusClapshaw\centroidFinder\BinarizingImageGroupFinderTest.class
+io\github\JonusClapshaw\centroidFinder\DistanceImageBinarizerTest.class
+io\github\JonusClapshaw\centroidFinder\BinarizingImageGroupFinderTest$FakeImageBinarizer.class

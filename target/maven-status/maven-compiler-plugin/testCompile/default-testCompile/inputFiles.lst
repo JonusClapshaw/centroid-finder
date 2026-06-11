@@ -1,4 +1,11 @@
 C:\Users\jocla\sdev334\centroid-finder\src\test\java\io\github\JonusClapshaw\centroidFinder\BinarizingImageGroupFinderTest.java
+C:\Users\jocla\sdev334\centroid-finder\src\test\java\io\github\JonusClapshaw\centroidFinder\CsvWriterTest.java
 C:\Users\jocla\sdev334\centroid-finder\src\test\java\io\github\JonusClapshaw\centroidFinder\DfsBinaryGroupFinderTest.java
 C:\Users\jocla\sdev334\centroid-finder\src\test\java\io\github\JonusClapshaw\centroidFinder\DistanceImageBinarizerTest.java
 C:\Users\jocla\sdev334\centroid-finder\src\test\java\io\github\JonusClapshaw\centroidFinder\EuclideanColorDistanceTest.java
+C:\Users\jocla\sdev334\centroid-finder\src\test\java\io\github\JonusClapshaw\centroidFinder\ImageSummaryAppCliTest.java
+C:\Users\jocla\sdev334\centroid-finder\src\test\java\io\github\JonusClapshaw\centroidFinder\ImageSummaryAppServiceTest.java
+C:\Users\jocla\sdev334\centroid-finder\src\test\java\io\github\JonusClapshaw\centroidFinder\InputValidatorTest.java
+C:\Users\jocla\sdev334\centroid-finder\src\test\java\io\github\JonusClapshaw\centroidFinder\VideoFrameReaderTest.java
+C:\Users\jocla\sdev334\centroid-finder\src\test\java\io\github\JonusClapshaw\centroidFinder\VideoProcessorAppTest.java
+C:\Users\jocla\sdev334\centroid-finder\src\test\java\io\github\JonusClapshaw\centroidFinder\VideoProcessorTest.java
