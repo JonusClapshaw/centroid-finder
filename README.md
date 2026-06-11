@@ -1,70 +1,84 @@
-# centroid-finder
+# Centroid Finder
 
-## *DO THIS FIRST* Wave 0: AI Rules 
-AI is *NOT ALLOWED* for generating implementations of the classes.
-AI is allowed for helping you make test cases.
+Centroid Finder is a Java project for detecting color-based groups in images and videos, then exporting centroid results to CSV.
 
-Don't have it just create the tests mindlessly for you though! Make sure you're actively involved in making the tests.
+## What This Project Does
 
-DO NOT MIX HUMAN AND AI COMMITS.
-EVERY COMMIT THAT USES AI MUST START WITH THE COMMIT MESSAGE "AI Used" AND IT MUST ONLY CREATE/ALTER TEST FILES
+- Binarizes image pixels against a target color and threshold.
+- Finds connected white-pixel groups.
+- Computes group centroids.
+- Writes results to CSV.
+- Supports both image flow and video flow entry points.
+- Exports a CSV for user to download on the front end.
 
-For this wave, please have each partner make a commit below with their username acknowledging that they understand the rules, according to the following format:
+## Libraries
 
-"I, YOUR_GITHUB_USERNAME, understand that AI is ONLY to be used for tests, and that every commit that I use AI for must start with 'AI Used'"
+- Java 17
+- Maven
+- JUnit 5
+- JCodec / JAVE dependencies for video-related processing
 
-I, JonusClapshaw, understand that AI is ONLY to be used for tests, and that every commit that I use AI for must start with 'AI Used
+## Project Structure
 
-I, Kravcant, understand that AI is ONLY to be used for tests, and that every commit that I use AI for must start with 'AI Used'
+- src/main/java/io/github/JonusClapshaw/centroidFinder
+	Main source code
+- src/test/java/io/github/JonusClapshaw/centroidFinder
+	Unit tests
+- sampleInput
+	Sample images and inputs
+- sampleOutput
+	Example output artifacts
+- pom.xml
+	Build and dependency configuration
 
-## Wave 1: Understand
-Read through ImageSummaryApp in detail with your partner. Understand what each part does. This will involve looking through and reading ALL of the other classes records and interfaces. This will take a long time, but it is worth it! Do not skimp on this part, you will regret it! Also look at the sampleInput and sampleOutput folders to understand what comes in and what goes out.
+## Run Tests
 
-As you read through the files, take notes in notes.md to help you and your partner understand. Make frequent commits to your notes.
+All tests:
 
-## Wave 2: Implement DfsBinaryGroupFinder
-This class takes in a binary image array and finds the connected groups. It will look very similar in many ways to the explorer problem you did for DFS! You'll need to understand the Group record to do this well.
+- mvn test
 
-Consider STARTING with the unit tests. Remember, you can use AI to help with the unit tests but NOT the implementation. Any AI commit must start with the message "AI Used"
+Targeted examples:
 
-MAKE SURE YOU MAKE THOROUGH UNIT TESTS.
+- mvn -Dtest=DistanceImageBinarizerTest test
+- mvn -Dtest=VideoProcessorAppTest,InputValidatorTest test
 
-## Wave 3: Implement EuclideanColorDistance
-Implement EuclideanColorDistance. You may consider adding a helper method for converting a hex int into R, G, and B components.
+## Run Image Processing (ImageSummaryApp)
 
-Again, consider starting with unit tests. You may consider using WolframAlpha to help you get correct expected values.
+Example Command:
 
-MAKE SURE YOU MAKE THOROUGH UNIT TESTS.
+- mvn -q -DskipTests exec:java -Dexec.mainClass=io.github.JonusClapshaw.centroidFinder.ImageSummaryApp -Dexec.args="sampleInput/squares.jpg FFA200 164"
 
-## Wave 4: Implement DistanceImageBinarizer
-To do this you will need to research `java.awt.image.BufferedImage`. In particular, make sure to understand `getRGB` and `setRGB`. When creating a new image, you can use the below to start the instance:
+Output:
 
-```
-new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-```
+- binarized.png
+- groups.csv
 
-Note that a lot of this class will be calling methods in BinaryGroupFinder and ColorDistanceFinder!
+## Common Outputs
 
-MAKE SURE YOU MAKE THOROUGH UNIT TESTS. Consider asking the AI to teach you about mocks and fakes in unit testing and how they may be helpful here.
+- groups.csv
+	Group summaries and centroid rows
+- binarized.png
+	Black/white binarized image
 
-HINT: `getRGB` returns a 32-bit AARRGGBB color (includes alpha channel). However, ColorDistanceFinder expects the colors to come in RRGGBB format (no alpha channel (most significant 8 bits set to 0)). What can you do to make this conversion happen?
+![Alt text](./SalamanderFrontEnd.png)
+![How the front-end works](./frontend.gif)
 
-## Wave 5: Implement BinarizingImageGroupFinder
-This implementation will be relatively short! It will mostly be calling methods in ImageBinarizer and BinaryGroupFinder.
+### Data Flow (Image Path)
 
-MAKE SURE YOU MAKE THOROUGH UNIT TESTS. Consider asking the AI to teach you about mocks and fakes in unit testing and how they may be helpful here. I recommend NOT using any external library other than JUnit. If the AI wants to use another external library, consider asking it not to and to make stubs instead.
+1. User provides image path, target color, and threshold.
+2. App validates arguments and loads image pixels.
+3. DistanceImageBinarizer converts pixels into a binary matrix (0 or 1).
+4. DfsBinaryGroupFinder finds connected white-pixel groups.
+5. Each group centroid is computed and written to groups.csv.
+6. Binary matrix is rendered to binarized.png.
 
-## Wave 6: Validation
-To validate your code is working, make sure you're in the centroid-finder directory and run the below command:
+### Data Flow (Video Path)
 
-```
-javac -cp lib/junit-platform-console-standalone-6.0.3.jar src/*.java && java -cp src ImageSummaryApp sampleInput/squares.jpg FFA200 164
-```
+1. User provides video path, output CSV path, target color, and threshold.
+2. VideoFrameReader streams frames with timestamps.
+3. Each sampled frame is binarized and grouped with the same core pipeline.
+4. Per-frame centroid results are appended to CSV for downstream use.
+5. Frontend/API layer can expose generated CSV and preview assets.
 
-This will compile your files and run the main method in ImageSummaryApp against the sample image with a target color of orange and a threshold of 164. It should binarized.png and groups.csv which should match the corresponding files in the sampleOutput directory.
 
-Once you have confirmed it is working, clean up your code, make sure it's committed and pushed, and make a PR to submit. Great job!
-
-## Optional Wave 7: Enhancements?
-If you want to, you can make a new branch to start experimenting. See if you can come up with a better color distance method (hint: look up perceptual color spaces). See if you can make your code more efficient or mor suited to spotting salamanders! Experiment with other test files. PLEASE MAKE SURE THIS IS IN A SEPARATE BRANCH FROM YOUR SUBMISSION. 
 

@@ -51,13 +51,6 @@ public class VideoProcessor {
         }
     }
 
-    int samplingIntervalFrames(double inputFramesPerSecond, double outputFramesPerSecond) {
-        if (inputFramesPerSecond <= 0.0 || outputFramesPerSecond <= 0.0) {
-            return 1;
-        }
-        return Math.max(1, (int) Math.round(inputFramesPerSecond / outputFramesPerSecond));
-    }
-
     private ImageGroupFinder buildGroupFinder(int targetColor, int threshold) {
         return new BinarizingImageGroupFinder(
                 new DistanceImageBinarizer(new EuclideanColorDistance(), targetColor, threshold),

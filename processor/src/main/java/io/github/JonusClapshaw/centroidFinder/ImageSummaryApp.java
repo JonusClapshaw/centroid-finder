@@ -39,7 +39,7 @@ public class ImageSummaryApp {
         
         String inputImagePath = args[0];
         String hexTargetColor = args[1];
-        int threshold = 0;
+        int threshold;
         try {
             threshold = Integer.parseInt(args[2]);
         } catch (NumberFormatException e) {
@@ -47,7 +47,7 @@ public class ImageSummaryApp {
             return;
         }
         
-        BufferedImage inputImage = null;
+        BufferedImage inputImage;
         try {
             inputImage = ImageIO.read(new File(inputImagePath));
         } catch (Exception e) {

@@ -283,4 +283,118 @@ public class DistanceImageBinarizerTest {
             assertEquals(targetColor, call[1]);
         }
     }
+
+    @Test
+    public void testToBufferedImageThrowsForEmptyImageArray() {
+        DistanceImageBinarizer binarizer = new DistanceImageBinarizer((a, b) -> 0.0, 0x000000, 1);
+
+        assertThrows(IllegalArgumentException.class, () -> binarizer.toBufferedImage(new int[0][0]));
+    }
+
+    @Test
+    public void testToBufferedImageThrowsForZeroWidthRows() {
+        DistanceImageBinarizer binarizer = new DistanceImageBinarizer((a, b) -> 0.0, 0x000000, 1);
+
+        int[][] binary = {{} };
+
+        assertThrows(IllegalArgumentException.class, () -> binarizer.toBufferedImage(binary));
+    }
+
+    @Test
+    public void testToBufferedImageThrowsForJaggedRows() {
+        DistanceImageBinarizer binarizer = new DistanceImageBinarizer((a, b) -> 0.0, 0x000000, 1);
+
+        int[][] binary = {
+            {1, 0},
+            {1}
+        };
+
+        assertThrows(IllegalArgumentException.class, () -> binarizer.toBufferedImage(binary));
+    }
+
+    @Test
+    public void testToBinaryArrayThrowsForNullImage() {
+        DistanceImageBinarizer binarizer = new DistanceImageBinarizer((a, b) -> 0.0, 0x000000, 1);
+
+        assertThrows(NullPointerException.class, () -> binarizer.toBinaryArray(null));
+    }
+
+    @Test
+    public void testToBufferedImageThrowsForNullArray() {
+        DistanceImageBinarizer binarizer = new DistanceImageBinarizer((a, b) -> 0.0, 0x000000, 1);
+
+        assertThrows(NullPointerException.class, () -> binarizer.toBufferedImage(null));
+    }
+
+    @Test
+    public void testToBufferedImageThrowsForNullRow() {
+        DistanceImageBinarizer binarizer = new DistanceImageBinarizer((a, b) -> 0.0, 0x000000, 1);
+
+        int[][] binary = {
+            {1, 0},
+            null
+        };
+
+        assertThrows(NullPointerException.class, () -> binarizer.toBufferedImage(binary));
+    }
+
+    @Test
+    public void testToBufferedImageTreatsNonOneValuesAsBlack() {
+        DistanceImageBinarizer binarizer = new DistanceImageBinarizer((a, b) -> 0.0, 0x000000, 1);
+
+        int[][] binary = {
+            {2, -1},
+            {0, 1}
+        };
+
+        BufferedImage image = binarizer.toBufferedImage(binary);
+
+        assertEquals(0x000000, image.getRGB(0, 0) & 0x00FFFFFF);
+        assertEquals(0x000000, image.getRGB(1, 0) & 0x00FFFFFF);
+        assertEquals(0x000000, image.getRGB(0, 1) & 0x00FFFFFF);
+        assertEquals(0x00FFFFFF, image.getRGB(1, 1) & 0x00FFFFFF);
+    }
+
+    @Test
+    public void testToBinaryArrayPropagatesDistanceFinderFailure() {
+        ColorDistanceFinder throwingFinder = (a, b) -> {
+            throw new IllegalStateException("distance computation failed");
+        };
+        DistanceImageBinarizer binarizer = new DistanceImageBinarizer(throwingFinder, 0x000000, 1);
+        BufferedImage image = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> binarizer.toBinaryArray(image));
+
+        assertEquals("distance computation failed", ex.getMessage());
+    }
+
+    /* THIS TEST IS FOR CHECKING A VERY LARGE AMOUNT OF DATA AND WILL RUN YOUR LAPTOP
+    IT RUNS BUT KEEP COMMENTED TO KEEP RUNTIME DOWN.
+    @Test
+    public void testToBinaryArrayHandlesLargeImageWithoutDimensionCorruption() {
+        final int width = 1500;
+        final int height = 1200;
+        final int expectedCalls = width * height;
+
+        SpyColorDistanceFinder spy = new SpyColorDistanceFinder();
+        for (int i = 0; i < expectedCalls; i++) {
+            spy.scriptResult(0.0);
+        }
+
+        DistanceImageBinarizer binarizer = new DistanceImageBinarizer(spy, 0x123456, 1);
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+
+        int[][] binary = binarizer.toBinaryArray(image);
+
+        assertEquals(height, binary.length);
+        assertEquals(width, binary[0].length);
+        assertEquals(expectedCalls, spy.getCalls().size());
+
+        // Spot-check corners and center to ensure output is fully populated.
+        assertEquals(1, binary[0][0]);
+        assertEquals(1, binary[0][width - 1]);
+        assertEquals(1, binary[height - 1][0]);
+        assertEquals(1, binary[height - 1][width - 1]);
+        assertEquals(1, binary[height / 2][width / 2]);
+    } */
 }

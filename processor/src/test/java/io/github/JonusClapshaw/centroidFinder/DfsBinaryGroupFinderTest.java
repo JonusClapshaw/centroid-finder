@@ -89,6 +89,18 @@ public class DfsBinaryGroupFinderTest {
     }
 
     @Test
+    public void testEmptyImageThrowsIllegalArgumentException() {
+        int[][] image = new int[0][0];
+        assertThrows(IllegalArgumentException.class, () -> finder.findConnectedGroups(image));
+    }
+
+    @Test
+    public void testZeroWidthRowThrowsIllegalArgumentException() {
+        int[][] image = {{} };
+        assertThrows(IllegalArgumentException.class, () -> finder.findConnectedGroups(image));
+    }
+
+    @Test
     public void testSingleRow() {
         int[][] image = {{1, 1, 0, 1, 1, 1}};
         List<Group> groups = finder.findConnectedGroups(image);
