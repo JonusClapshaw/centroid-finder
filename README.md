@@ -61,6 +61,7 @@ Output:
 	Black/white binarized image
 
 ![Alt text](./SalamanderFrontEnd.png)
+![How the front-end works](./frontend.gif)
 
 ### Data Flow (Image Path)
 
