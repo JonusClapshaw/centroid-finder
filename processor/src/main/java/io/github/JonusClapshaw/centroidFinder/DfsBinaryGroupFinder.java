@@ -2,6 +2,8 @@ package io.github.JonusClapshaw.centroidFinder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
 public class DfsBinaryGroupFinder implements BinaryGroupFinder {
    /**
@@ -69,18 +71,29 @@ public class DfsBinaryGroupFinder implements BinaryGroupFinder {
         {0, 1}   // RIGHT
     };
 
-    private static void collectPixels(int row, int col, int[][] image, boolean[][] visited, int[] stats) {
+    private static void collectPixels(int startRow, int startCol, int[][] image, boolean[][] visited, int[] stats) {
+    Deque<int[]> stack = new ArrayDeque<>();
+    stack.push(new int[]{startRow, startCol});
+
+    while (!stack.isEmpty()) {
+        int[] current = stack.pop();
+        int row = current[0];
+        int col = current[1];
+
         if (row < 0 || row >= image.length || col < 0 || col >= image[0].length
                 || visited[row][col] || image[row][col] == 0) {
-            return;
+            continue;
         }
+
         visited[row][col] = true;
         stats[0] += col; // sumX
         stats[1] += row; // sumY
         stats[2]++;      // size
+
         for (int[] move : MOVES) {
-            collectPixels(row + move[0], col + move[1], image, visited, stats);
+            stack.push(new int[]{row + move[0], col + move[1]});
         }
     }
+}
     
 }
