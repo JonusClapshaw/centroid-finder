@@ -14,6 +14,10 @@ import org.jcodec.common.io.NIOUtils;
 import org.jcodec.common.io.SeekableByteChannel;
 import org.jcodec.scale.AWTUtil;
 
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+
 /**
  * Reads frames from an MP4 video file.
  */
@@ -79,13 +83,31 @@ public class VideoFrameReader {
 
         try (SeekableByteChannel channel = NIOUtils.readableChannel(videoFile)) {
             AWTFrameGrab frameGrab = AWTFrameGrab.createAWTFrameGrab(channel);
+            double nextSampleTimestamp = 0.0;
+            double firstTimestamp = -1.0;
             int frameIndex = 0;
             PictureWithMetadata frame;
-            while ((frame = frameGrab.getNativeFrameWithMetadata()) != null) {
-                frameConsumer.accept(
-                        AWTUtil.toBufferedImage(frame.getPicture()),
-                        frameIndex,
-                        frame.getTimestamp());
+
+
+            while (true) {
+                long grabStart = System.currentTimeMillis();
+                frame = frameGrab.getNativeFrameWithMetadata();
+
+                if (frame == null) break;
+
+                long decodeStart = System.currentTimeMillis();
+                double timestamp = frame.getTimestamp();
+                if (firstTimestamp < 0.0) {
+                    firstTimestamp = timestamp;
+                }
+                double relativeTimestamp = timestamp - firstTimestamp;
+
+                if (relativeTimestamp + 1e-9 >= nextSampleTimestamp) {
+                    long processStart = System.currentTimeMillis();
+                    frameConsumer.accept(AWTUtil.toBufferedImage(frame.getPicture()), frameIndex, relativeTimestamp);
+                    nextSampleTimestamp = relativeTimestamp + 1.0;
+                }
+
                 frameIndex++;
             }
         } catch (JCodecException exception) {
