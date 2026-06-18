@@ -214,6 +214,7 @@ function parseCsvRows(csvText) {
 // Throws errors with HTTP-friendly status codes for route-level error handling.
 function resolveProcessRequest(body = {}) {
   const {
+    filename,
     videoPath,
     inputPath = "processor/sampleInput/ensantina.mp4",
     outputCsv = "output.csv",
@@ -239,13 +240,12 @@ function resolveProcessRequest(body = {}) {
     throw error;
   }
 
-  const selectedInputPath = videoPath || inputPath;
-  const resolvedInputPath = path.isAbsolute(selectedInputPath)
-    ? selectedInputPath
-    : path.join(repoRoot, selectedInputPath);
+  const selectedInputPath = filename
+    ? path.join(repoRoot, "processor", "sampleInput", path.basename(filename))
+    : videoPath || path.join(repoRoot, inputPath);
 
-  if (!fs.existsSync(resolvedInputPath)) {
-    const error = new Error(`Input video not found: ${resolvedInputPath}`);
+  if (!fs.existsSync(selectedInputPath)) {
+    const error = new Error(`Input video not found: ${selectedInputPath}`);
     error.status = 400;
     throw error;
   }
@@ -254,7 +254,7 @@ function resolveProcessRequest(body = {}) {
     ? outputCsv
     : path.join(repoRoot, outputCsv);
 
-  return { resolvedInputPath, resolvedOutputCsv, targetColor, threshold };
+  return { resolvedInputPath: selectedInputPath, resolvedOutputCsv, targetColor, threshold };
 }
 
 // Runs the Java processor jar and returns parsed CSV rows.
@@ -264,7 +264,7 @@ async function runProcessorAndReadCsv(config) {
   const { resolvedInputPath, resolvedOutputCsv, targetColor, threshold } = config;
   const { stdout, stderr } = await execFileAsync(
     "java",
-    ["-jar", jarPath, resolvedInputPath, resolvedOutputCsv, targetColor, String(threshold)],
+    ["-Djava.awt.headless=true", "-jar", jarPath, resolvedInputPath, resolvedOutputCsv, targetColor, String(threshold)],
     { cwd: repoRoot, maxBuffer: 1024 * 1024 * 10 }
   );
 
