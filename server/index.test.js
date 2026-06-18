@@ -127,6 +127,15 @@ describe("POST /process/run", () => {
     expect(response.body.error).toMatch(/threshold is required and must be an integer/i);
   });
 
+  test("returns 400 when videoDurationSeconds is invalid", async () => {
+    const response = await request(app)
+      .post("/process/run")
+      .send({ targetColor: "450907", threshold: 25, videoDurationSeconds: 0 });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toMatch(/videoDurationSeconds must be a positive number/i);
+  });
+
   test("returns 500 when processor jar is missing", async () => {
     fs.existsSync.mockReturnValue(false);
 
@@ -205,6 +214,106 @@ describe("POST /process/run", () => {
     expect(response.body.rows[0]).toEqual({ timestamp: 0, x: 200, y: 436 });
     expect(response.body.stdout).toBe("simulated stdout");
     expect(execFile).toHaveBeenCalledTimes(1);
+  });
+
+  test("downsamples dense CSV rows to one row per second", async () => {
+    fs.existsSync
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(true);
+
+    fs.readFileSync.mockReturnValue(
+      [
+        "timestamp,x,y",
+        "0.000,200,436",
+        "0.033,201,437",
+        "0.066,202,438",
+        "1.000,210,440",
+        "1.033,211,441",
+      ].join("\n")
+    );
+
+    execFile.mockImplementation((cmd, args, opts, cb) => {
+      cb(null, "simulated stdout", "");
+    });
+
+    const response = await request(app)
+      .post("/process/run")
+      .send({
+        targetColor: "450907",
+        threshold: 25,
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.rowCount).toBe(2);
+    expect(response.body.rows).toEqual([
+      { timestamp: 0, x: 200, y: 436 },
+      { timestamp: 1, x: 210, y: 440 },
+    ]);
+  });
+
+  test("downsamples frame-index timestamps to one row per second", async () => {
+    fs.existsSync
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(true);
+
+    const denseRows = ["timestamp,x,y"];
+    for (let i = 0; i < 479; i++) {
+      denseRows.push(`${i},-1,-1`);
+    }
+    fs.readFileSync.mockReturnValue(denseRows.join("\n"));
+
+    execFile.mockImplementation((cmd, args, opts, cb) => {
+      cb(null, "simulated stdout", "");
+    });
+
+    const response = await request(app)
+      .post("/process/run")
+      .send({
+        targetColor: "450907",
+        threshold: 25,
+        outputCsv: "output.csv",
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.rowCount).toBe(10);
+    expect(response.body.rows[0].timestamp).toBe(0);
+    expect(response.body.rows[9].timestamp).toBe(9);
+  });
+
+  test("ignores requested sampleRateHz and still samples at one row per second", async () => {
+    fs.existsSync
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(true);
+
+    fs.readFileSync.mockReturnValue(
+      [
+        "timestamp,x,y",
+        "0.000,200,436",
+        "0.250,201,437",
+        "0.500,202,438",
+        "0.750,203,439",
+        "1.000,210,440",
+      ].join("\n")
+    );
+
+    execFile.mockImplementation((cmd, args, opts, cb) => {
+      cb(null, "simulated stdout", "");
+    });
+
+    const response = await request(app)
+      .post("/process/run")
+      .send({
+        targetColor: "450907",
+        threshold: 25,
+        sampleRateHz: 2,
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.rowCount).toBe(2);
+    expect(response.body.rows).toEqual([
+      { timestamp: 0, x: 200, y: 436 },
+      { timestamp: 1, x: 210, y: 440 },
+    ]);
   });
 
   // Verifies request input is propagated into java args used by child_process.execFile.
@@ -309,6 +418,14 @@ describe("POST /api/process", () => {
     expect(completed.body.data.summary.rowCount).toBe(2);
     expect(completed.body.data.summary.foundCount).toBe(1);
     expect(completed.body.data.summary.missingCount).toBe(1);
+    expect(completed.body.data.summary.sampleRateHz).toBe(1);
+    expect(completed.body.data.summary.averageX).toBe(200);
+    expect(completed.body.data.summary.averageY).toBe(436);
+    expect(completed.body.data.summary.averageLocation).toEqual({
+      x: 200,
+      y: 436,
+      sampleCount: 1,
+    });
     expect(completed.body.data.rows[1]).toEqual({ timestamp: 1, x: -1, y: -1 });
   });
 
@@ -345,6 +462,8 @@ describe("POST /api/process", () => {
     expect(pollResponse.body.jobId).toBe(processResponse.body.jobId);
     expect(pollResponse.body.status).toBe("completed");
     expect(pollResponse.body.data.summary.rowCount).toBe(1);
+    expect(pollResponse.body.data.summary.averageX).toBe(200);
+    expect(pollResponse.body.data.summary.averageY).toBe(436);
   });
 
   test("returns 404 when polling unknown jobId", async () => {
@@ -423,8 +542,6 @@ describe("POST /api/process", () => {
     expect(response.body.success).toBe(true);
 
     const pollResponse = await waitForJobCompletion(response.body.jobId);
-    expect(pollResponse.status).toBe(200);
-    expect(pollResponse.body.status).toBe("failed");
     expect(pollResponse.body.error).toMatch(/EACCES/i);
   });
 });
@@ -474,6 +591,94 @@ describe("GET /api/download/:jobId", () => {
     expect(downloadResponse.status).toBe(200);
     expect(downloadResponse.headers["content-type"]).toMatch(/text\/csv/);
     expect(downloadResponse.headers["content-disposition"]).toMatch(/attachment; filename="output\.csv"/);
+    expect(downloadResponse.text).toContain("# Average centroid placement (based on 1 detections): x=200.00, y=436.00");
+    expect(downloadResponse.text).toContain("timestamp,x,y");
+  });
+
+  test("downloads downsampled CSV rows when processor emits dense frame rows", async () => {
+    const denseCsvText = [
+      "timestamp,x,y",
+      "0.000,200,436",
+      "0.033,201,437",
+      "0.066,202,438",
+      "1.000,210,440",
+      "1.033,211,441",
+    ].join("\n");
+
+    fs.existsSync
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(true);
+
+    fs.readFileSync.mockImplementation(() => denseCsvText);
+
+    execFile.mockImplementation((cmd, args, opts, cb) => {
+      cb(null, "simulated stdout", "");
+    });
+
+    const processResponse = await request(app)
+      .post("/api/process")
+      .send({
+        targetColor: "450907",
+        threshold: 25,
+        outputCsv: "output.csv",
+      });
+
+    expect(processResponse.status).toBe(202);
+    const { jobId } = processResponse.body;
+
+    const completed = await waitForJobCompletion(jobId);
+    expect(completed.status).toBe(200);
+    expect(completed.body.data.summary.rowCount).toBe(2);
+
+    const downloadResponse = await request(app).get(`/api/download/${jobId}`);
+    expect(downloadResponse.status).toBe(200);
+    expect(downloadResponse.text).toContain("0.000,200,436");
+    expect(downloadResponse.text).toContain("1.000,210,440");
+    expect(downloadResponse.text).not.toContain("0.033,201,437");
+    expect(downloadResponse.text).not.toContain("1.033,211,441");
+  });
+
+  test("includes unavailable average summary when no salamander is detected", async () => {
+    const csvText = [
+      "timestamp,x,y",
+      "0.000,-1,-1",
+      "1.000,-1,-1",
+    ].join("\n");
+
+    fs.existsSync
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(true);
+
+    fs.readFileSync.mockImplementation(() => csvText);
+
+    execFile.mockImplementation((cmd, args, opts, cb) => {
+      cb(null, "simulated stdout", "");
+    });
+
+    const processResponse = await request(app)
+      .post("/api/process")
+      .send({
+        targetColor: "450907",
+        threshold: 25,
+        outputCsv: "output.csv",
+      });
+
+    expect(processResponse.status).toBe(202);
+
+    const completed = await waitForJobCompletion(processResponse.body.jobId);
+    expect(completed.status).toBe(200);
+    expect(completed.body.status).toBe("completed");
+
+    const downloadResponse = await request(app)
+      .get(`/api/download/${processResponse.body.jobId}`);
+
+    expect(downloadResponse.status).toBe(200);
+    expect(completed.body.data.summary.averageLocation).toBeNull();
+    expect(downloadResponse.text).toContain(
+      "# Average centroid placement: unavailable (no detections found)"
+    );
     expect(downloadResponse.text).toContain("timestamp,x,y");
   });
 

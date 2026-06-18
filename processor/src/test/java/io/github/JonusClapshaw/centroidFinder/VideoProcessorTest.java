@@ -25,7 +25,7 @@ class VideoProcessorTest {
     }
 
     @Test
-    void processFrames_writesLargestCentroidForEachFrame() throws IOException {
+    void processFrames_writesLargestCentroidOncePerSecond() throws IOException {
         VideoProcessor processor = new VideoProcessor();
         Path outputFile = tempDir.resolve("output.csv");
 
@@ -39,8 +39,7 @@ class VideoProcessorTest {
         List<String> lines = Files.readAllLines(outputFile);
         assertEquals(List.of(
                 "timestamp,x,y",
-                "0.000,1,0",
-                "0.033,2,2"
+            "0.000,1,0"
         ), lines);
     }
 
@@ -65,12 +64,18 @@ class VideoProcessorTest {
     }
 
         @Test
-        void processFrames_usesFramesPerSecondToComputeTimestamps() throws IOException {
+        void processFrames_samplesAtOneSecondIntervals() throws IOException {
         VideoProcessor processor = new VideoProcessor();
         Path outputFile = tempDir.resolve("fps-based-timestamps.csv");
 
         processor.processFrames(
-            List.of(frameWithWhitePixelAt(0, 0), frameWithWhitePixelAt(1, 1), frameWithWhitePixelAt(2, 2)),
+            List.of(
+                    frameWithWhitePixelAt(0, 0),
+                    frameWithWhitePixelAt(1, 1),
+                    frameWithWhitePixelAt(2, 2),
+                    frameWithWhitePixelAt(0, 1),
+                    frameWithWhitePixelAt(1, 2)
+            ),
             outputFile.toString(),
             "FFFFFF",
             1,
@@ -80,8 +85,8 @@ class VideoProcessorTest {
         assertEquals(List.of(
             "timestamp,x,y",
             "0.000,0,0",
-            "0.500,1,1",
-            "1.000,2,2"
+            "1.000,2,2",
+            "2.000,1,2"
         ), lines);
         }
 
@@ -124,6 +129,17 @@ class VideoProcessorTest {
                 () -> processor.processFrames(List.of(), "unused.csv", "GGGGGG", 1, 30.0));
 
         assertEquals("targetColor must be a 6-digit RGB hex value.", exception.getMessage());
+    }
+
+    @Test
+    void processFrames_rejectsNonPositiveFramesPerSecond() {
+        VideoProcessor processor = new VideoProcessor();
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> processor.processFrames(List.of(), "unused.csv", "FFFFFF", 1, 0.0));
+
+        assertEquals("framesPerSecond must be greater than 0.", exception.getMessage());
     }
 
 }
