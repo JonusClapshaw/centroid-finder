@@ -23,10 +23,10 @@ public class VideoProcessorApp {
                 parsedArgs.threshold()
             );
         } catch (IllegalArgumentException e) {
-            System.err.println("Error: " + e.getMessage());
+            e.printStackTrace();
             System.exit(1);
         } catch (UncheckedIOException e) {
-            System.err.println("Error: " + e.getMessage());
+            e.printStackTrace();
             System.exit(1);
         }
     }

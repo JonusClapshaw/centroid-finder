@@ -201,7 +201,7 @@ function parseCsvRows(csvText, sampleRateHz = FIXED_SAMPLE_RATE_HZ, options = {}
     return [];
   }
 
-  const parsedRows = lines.slice(1).map((line) => {
+  return lines.slice(1).map((line) => {
     const [timestamp, x, y] = line.split(",");
     return {
       timestamp: Number(timestamp),
@@ -209,8 +209,6 @@ function parseCsvRows(csvText, sampleRateHz = FIXED_SAMPLE_RATE_HZ, options = {}
       y: Number(y),
     };
   });
-
-  return downsampleRowsToRate(parsedRows, sampleRateHz, options);
 }
 
 function median(values) {
@@ -410,7 +408,7 @@ function resolveProcessRequest(body = {}) {
     : path.join(repoRoot, outputCsv);
 
   return {
-    selectedInputPath,
+    resolvedInputPath: selectedInputPath,
     resolvedOutputCsv,
     targetColor,
     threshold,
@@ -423,11 +421,19 @@ function resolveProcessRequest(body = {}) {
 // Internal call sequence: execFileAsync() -> fs.readFileSync() -> parseCsvRows().
 async function runProcessorAndReadCsv(config) {
   const { resolvedInputPath, resolvedOutputCsv, targetColor, threshold, videoDurationSeconds } = config;
-  const { stdout, stderr } = await execFileAsync(
-    "java",
-    ["-Djava.awt.headless=true", "-jar", jarPath, resolvedInputPath, resolvedOutputCsv, targetColor, String(threshold)],
-    { cwd: repoRoot, maxBuffer: 1024 * 1024 * 10 }
-  );
+  
+  let stdout, stderr;
+  try {
+    ({ stdout, stderr } = await execFileAsync(
+      "java",
+      ["-Djava.awt.headless=true", "-jar", jarPath, resolvedInputPath, resolvedOutputCsv, targetColor, String(threshold)],
+      { cwd: repoRoot, maxBuffer: 1024 * 1024 * 10 }
+    ));
+  } catch (err) {
+    console.error('Java stdout:', err.stdout);
+    console.error('Java stderr:', err.stderr);
+    throw err;
+  }
 
   const csvText = fs.readFileSync(resolvedOutputCsv, "utf8");
   const rows = parseCsvRows(csvText, FIXED_SAMPLE_RATE_HZ, { videoDurationSeconds });
