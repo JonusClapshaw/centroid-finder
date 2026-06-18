@@ -39,14 +39,24 @@ public class VideoProcessor {
                        String targetColor,
                        int threshold,
                        double framesPerSecond) throws IOException {
+        if (framesPerSecond <= 0) {
+            throw new IllegalArgumentException("framesPerSecond must be greater than 0.");
+        }
+
         int parsedTargetColor = parseTargetColor(targetColor);
         ImageGroupFinder groupFinder = buildGroupFinder(parsedTargetColor, threshold);
+        double nextSampleTimestampSeconds = 0.0;
 
         try (CsvWriter csvWriter = new CsvWriter(outputCsvPath)) {
             for (int index = 0; index < frames.size(); index++) {
                 double timestampSeconds = index / framesPerSecond;
+                if (timestampSeconds + 1e-9 < nextSampleTimestampSeconds) {
+                    continue;
+                }
+
                 List<Group> groups = groupFinder.findConnectedGroups(frames.get(index));
-                csvWriter.writeRow(timestampSeconds, groups);
+                csvWriter.writeRow(nextSampleTimestampSeconds, groups);
+                nextSampleTimestampSeconds += 1.0 / OUTPUT_FRAMES_PER_SECOND;
             }
         }
     }

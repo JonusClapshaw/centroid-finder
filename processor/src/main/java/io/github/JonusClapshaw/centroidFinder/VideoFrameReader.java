@@ -79,13 +79,21 @@ public class VideoFrameReader {
 
         try (SeekableByteChannel channel = NIOUtils.readableChannel(videoFile)) {
             AWTFrameGrab frameGrab = AWTFrameGrab.createAWTFrameGrab(channel);
+            DemuxerTrackMeta meta = frameGrab.getVideoTrack().getMeta();
+            double estimatedFramesPerSecond = 1.0;
+            int totalFrames = meta.getTotalFrames();
+            double totalDuration = meta.getTotalDuration();
+            if (totalFrames > 0 && totalDuration > 0.0) {
+                estimatedFramesPerSecond = totalFrames / totalDuration;
+            }
+
             int frameIndex = 0;
             PictureWithMetadata frame;
             while ((frame = frameGrab.getNativeFrameWithMetadata()) != null) {
                 frameConsumer.accept(
                         AWTUtil.toBufferedImage(frame.getPicture()),
                         frameIndex,
-                        frame.getTimestamp());
+                        frameIndex / estimatedFramesPerSecond);
                 frameIndex++;
             }
         } catch (JCodecException exception) {
