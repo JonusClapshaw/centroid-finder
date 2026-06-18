@@ -46,6 +46,8 @@ const port = process.env.PORT || 3000;
 const repoRoot = path.resolve(__dirname, "..");
 const jarPath = path.join(repoRoot, "processor", "target", "videoprocessor.jar");
 const corsOrigin = process.env.CORS_ORIGIN || "*";
+const FIXED_SAMPLE_RATE_HZ = 1;
+const FRAME_INDEX_FALLBACK_FPS = 50;
 
 app.use(express.json());
 // Global middleware: allows browser-based frontend calls and short-circuits OPTIONS preflight.
@@ -189,7 +191,7 @@ function execFileAsync(command, args, options = {}) {
 
 // Parses processor CSV output into typed row objects.
 // Called by: runProcessorAndReadCsv().
-function parseCsvRows(csvText) {
+function parseCsvRows(csvText, sampleRateHz = FIXED_SAMPLE_RATE_HZ, options = {}) {
   const lines = csvText
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -199,7 +201,7 @@ function parseCsvRows(csvText) {
     return [];
   }
 
-  return lines.slice(1).map((line) => {
+  const parsedRows = lines.slice(1).map((line) => {
     const [timestamp, x, y] = line.split(",");
     return {
       timestamp: Number(timestamp),
@@ -207,6 +209,150 @@ function parseCsvRows(csvText) {
       y: Number(y),
     };
   });
+
+  return downsampleRowsToRate(parsedRows, sampleRateHz, options);
+}
+
+function median(values) {
+  if (!values.length) {
+    return 0;
+  }
+
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 0) {
+    return (sorted[middle - 1] + sorted[middle]) / 2;
+  }
+
+  return sorted[middle];
+}
+
+function looksLikeFrameIndexTimestamps(rows) {
+  if (!Array.isArray(rows) || rows.length < 3) {
+    return false;
+  }
+
+  const diffs = [];
+  for (let i = 1; i < rows.length && diffs.length < 120; i++) {
+    const previous = rows[i - 1]?.timestamp;
+    const current = rows[i]?.timestamp;
+    if (!Number.isFinite(previous) || !Number.isFinite(current)) {
+      continue;
+    }
+
+    const diff = current - previous;
+    if (diff > 0) {
+      diffs.push(diff);
+    }
+  }
+
+  if (!diffs.length) {
+    return false;
+  }
+
+  const stepMedian = median(diffs);
+  const lastTimestamp = rows[rows.length - 1]?.timestamp;
+  const timestampsMirrorFrameCount = Number.isFinite(lastTimestamp)
+    && lastTimestamp >= rows.length - 2;
+
+  return stepMedian >= 0.9 && stepMedian <= 1.1 && timestampsMirrorFrameCount;
+}
+
+function normalizeFrameIndexRows(rows, videoDurationSeconds) {
+  let sourceFramesPerSecond = FRAME_INDEX_FALLBACK_FPS;
+  if (Number.isFinite(videoDurationSeconds) && videoDurationSeconds > 0) {
+    sourceFramesPerSecond = rows.length / videoDurationSeconds;
+  }
+
+  if (!Number.isFinite(sourceFramesPerSecond) || sourceFramesPerSecond <= 0) {
+    sourceFramesPerSecond = FRAME_INDEX_FALLBACK_FPS;
+  }
+
+  return rows.map((row, frameIndex) => ({
+    timestamp: frameIndex / sourceFramesPerSecond,
+    x: row.x,
+    y: row.y,
+  }));
+}
+
+function downsampleRowsToRate(rows, sampleRateHz = 1, options = {}) {
+  const firstRowByBucket = new Map();
+  const safeSampleRateHz = Number.isFinite(sampleRateHz) && sampleRateHz > 0
+    ? sampleRateHz
+    : 1;
+  const candidateRows = looksLikeFrameIndexTimestamps(rows)
+    ? normalizeFrameIndexRows(rows, options.videoDurationSeconds)
+    : rows;
+
+  for (const row of candidateRows || []) {
+    if (!Number.isFinite(row?.timestamp)) {
+      continue;
+    }
+
+    const timeBucket = Math.floor((row.timestamp * safeSampleRateHz) + 1e-9);
+    if (!firstRowByBucket.has(timeBucket)) {
+      firstRowByBucket.set(timeBucket, {
+        timestamp: timeBucket / safeSampleRateHz,
+        x: row.x,
+        y: row.y,
+      });
+    }
+  }
+
+  return Array.from(firstRowByBucket.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([, row]) => row);
+}
+
+function buildCsvTextFromRows(rows) {
+  const lines = ["timestamp,x,y"];
+
+  for (const row of rows || []) {
+    lines.push(`${Number(row.timestamp).toFixed(3)},${row.x},${row.y}`);
+  }
+
+  return lines.join("\n");
+}
+
+function computeAverageLocation(rows) {
+  const detectedRows = (rows || []).filter(
+    (row) => Number.isFinite(row?.x) && Number.isFinite(row?.y) && row.x >= 0 && row.y >= 0
+  );
+
+  if (detectedRows.length === 0) {
+    return {
+      averageX: null,
+      averageY: null,
+      sampleCount: 0,
+    };
+  }
+
+  const totals = detectedRows.reduce(
+    (acc, row) => ({ x: acc.x + row.x, y: acc.y + row.y }),
+    { x: 0, y: 0 }
+  );
+
+  return {
+    averageX: totals.x / detectedRows.length,
+    averageY: totals.y / detectedRows.length,
+    sampleCount: detectedRows.length,
+  };
+}
+
+function buildDownloadCsvWithSummary(csvText, rows) {
+  const averageLocation = computeAverageLocation(rows);
+
+  if (!averageLocation.sampleCount) {
+    return [
+      "# Average centroid placement: unavailable (no detections found)",
+      csvText,
+    ].join("\n");
+  }
+
+  return [
+    `# Average centroid placement (based on ${averageLocation.sampleCount} detections): x=${averageLocation.averageX.toFixed(2)}, y=${averageLocation.averageY.toFixed(2)}`,
+    csvText,
+  ].join("\n");
 }
 
 // Validates request body and resolves absolute file paths.
@@ -217,6 +363,7 @@ function resolveProcessRequest(body = {}) {
     videoPath,
     inputPath = "processor/sampleInput/ensantina.mp4",
     outputCsv = "output.csv",
+    videoDurationSeconds,
     targetColor,
     threshold,
   } = body;
@@ -231,6 +378,14 @@ function resolveProcessRequest(body = {}) {
     const error = new Error("threshold is required and must be an integer.");
     error.status = 400;
     throw error;
+  }
+
+  if (videoDurationSeconds != null) {
+    if (!Number.isFinite(videoDurationSeconds) || videoDurationSeconds <= 0) {
+      const error = new Error("videoDurationSeconds must be a positive number when provided.");
+      error.status = 400;
+      throw error;
+    }
   }
 
   if (!fs.existsSync(jarPath)) {
@@ -254,14 +409,20 @@ function resolveProcessRequest(body = {}) {
     ? outputCsv
     : path.join(repoRoot, outputCsv);
 
-  return { resolvedInputPath, resolvedOutputCsv, targetColor, threshold };
+  return {
+    resolvedInputPath,
+    resolvedOutputCsv,
+    targetColor,
+    threshold,
+    videoDurationSeconds,
+  };
 }
 
 // Runs the Java processor jar and returns parsed CSV rows.
 // Called by: POST /process/run and POST /api/process after resolveProcessRequest().
 // Internal call sequence: execFileAsync() -> fs.readFileSync() -> parseCsvRows().
 async function runProcessorAndReadCsv(config) {
-  const { resolvedInputPath, resolvedOutputCsv, targetColor, threshold } = config;
+  const { resolvedInputPath, resolvedOutputCsv, targetColor, threshold, videoDurationSeconds } = config;
   const { stdout, stderr } = await execFileAsync(
     "java",
     ["-jar", jarPath, resolvedInputPath, resolvedOutputCsv, targetColor, String(threshold)],
@@ -269,7 +430,7 @@ async function runProcessorAndReadCsv(config) {
   );
 
   const csvText = fs.readFileSync(resolvedOutputCsv, "utf8");
-  const rows = parseCsvRows(csvText);
+  const rows = parseCsvRows(csvText, FIXED_SAMPLE_RATE_HZ, { videoDurationSeconds });
   return { stdout, stderr, rows };
 }
 
@@ -295,6 +456,7 @@ function startBackgroundProcessing(jobId, config) {
     try {
       const { rows } = await runProcessorAndReadCsv(config);
       const missingCount = rows.filter((row) => row.x === -1 && row.y === -1).length;
+      const averageLocation = computeAverageLocation(rows);
       const finishedAt = Date.now();
       const durationMs = finishedAt - startedAt;
 
@@ -314,6 +476,16 @@ function startBackgroundProcessing(jobId, config) {
             rowCount: rows.length,
             foundCount: rows.length - missingCount,
             missingCount,
+            sampleRateHz: FIXED_SAMPLE_RATE_HZ,
+            averageX: averageLocation.averageX == null ? null : Number(averageLocation.averageX.toFixed(2)),
+            averageY: averageLocation.averageY == null ? null : Number(averageLocation.averageY.toFixed(2)),
+            averageLocation: averageLocation.sampleCount
+              ? {
+                  x: Number(averageLocation.averageX.toFixed(2)),
+                  y: Number(averageLocation.averageY.toFixed(2)),
+                  sampleCount: averageLocation.sampleCount,
+                }
+              : null,
           },
           rows,
         },
@@ -494,11 +666,16 @@ app.get("/api/download/:jobId", (req, res) => {
 
   try {
     const csvText = fs.readFileSync(csvPath, "utf8");
+    const normalizedRows = Array.isArray(job?.data?.rows)
+      ? job.data.rows
+      : parseCsvRows(csvText);
+    const normalizedCsvText = buildCsvTextFromRows(normalizedRows);
+    const csvWithSummary = buildDownloadCsvWithSummary(normalizedCsvText, normalizedRows);
     res
       .status(200)
       .set("Content-Disposition", `attachment; filename="${path.basename(csvPath)}"`)
       .type("text/csv")
-      .send(csvText);
+      .send(csvWithSummary);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message || "Failed to read CSV." });
   }
